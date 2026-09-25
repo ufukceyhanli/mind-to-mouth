@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "Mind to Mouth",
+    "slug": "mind-to-mouth",
+    "version": "1.0.0",
+    "scheme": "mindtomouth",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0B0F14",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.mindtomouth.app",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Mind to Mouth records your two-minute talk so it can be transcribed and scored."
+      }
+    },
+    "android": {
+      "package": "com.mindtomouth.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0B0F14",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Mind to Mouth records your two-minute talk so it can be transcribed and scored."
+        }
+      ],
+      "expo-secure-store",
+      "expo-asset"
+    ]
+  }
+}
