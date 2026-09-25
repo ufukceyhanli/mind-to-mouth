@@ -5,8 +5,7 @@ import { DEFAULT_SETTINGS, type Session, type Settings } from './types';
 
 const SESSIONS_KEY = 'mtm.sessions.v1';
 const SETTINGS_KEY = 'mtm.settings.v1';
-const OPENAI_KEY = 'mtm_openai_api_key';
-const ANTHROPIC_KEY = 'mtm_anthropic_api_key';
+const NVIDIA_KEY = 'mtm_nvidia_api_key';
 
 // ---- Sessions -------------------------------------------------------------
 
@@ -75,10 +74,8 @@ async function setSecret(key: string, value: string): Promise<void> {
   }
 }
 
-export const getOpenAIKey = () => getSecret(OPENAI_KEY);
-export const setOpenAIKey = (v: string) => setSecret(OPENAI_KEY, v);
-export const getAnthropicKey = () => getSecret(ANTHROPIC_KEY);
-export const setAnthropicKey = (v: string) => setSecret(ANTHROPIC_KEY, v);
+export const getNvidiaKey = () => getSecret(NVIDIA_KEY);
+export const setNvidiaKey = (v: string) => setSecret(NVIDIA_KEY, v);
 
 // ---- Derived stats --------------------------------------------------------
 

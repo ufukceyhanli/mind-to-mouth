@@ -12,14 +12,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, Card, Muted, SectionTitle } from '../src/components/ui';
-import {
-  getAnthropicKey,
-  getOpenAIKey,
-  loadSettings,
-  saveSettings,
-  setAnthropicKey,
-  setOpenAIKey,
-} from '../src/storage';
+import { getNvidiaKey, loadSettings, saveSettings, setNvidiaKey } from '../src/storage';
 import { colors, radius, spacing } from '../src/theme';
 import { DEFAULT_SETTINGS, type Settings } from '../src/types';
 
@@ -29,8 +22,7 @@ const MAX_OPTIONS = [180, 300, 600];
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
-  const [openAI, setOpenAI] = useState('');
-  const [anthropic, setAnthropic] = useState('');
+  const [apiKey, setApiKey] = useState('');
   const [reveal, setReveal] = useState(false);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [saving, setSaving] = useState(false);
@@ -39,10 +31,9 @@ export default function SettingsScreen() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [o, a, s] = await Promise.all([getOpenAIKey(), getAnthropicKey(), loadSettings()]);
+      const [key, s] = await Promise.all([getNvidiaKey(), loadSettings()]);
       if (cancelled) return;
-      setOpenAI(o ?? '');
-      setAnthropic(a ?? '');
+      setApiKey(key ?? '');
       setSettings(s);
     })();
     return () => {
@@ -56,12 +47,10 @@ export default function SettingsScreen() {
       const safeSettings: Settings = {
         ...settings,
         maxSeconds: Math.max(settings.maxSeconds, settings.minSeconds + 30),
+        transcribeModel: settings.transcribeModel.trim() || DEFAULT_SETTINGS.transcribeModel,
+        coachModel: settings.coachModel.trim() || DEFAULT_SETTINGS.coachModel,
       };
-      await Promise.all([
-        setOpenAIKey(openAI),
-        setAnthropicKey(anthropic),
-        saveSettings(safeSettings),
-      ]);
+      await Promise.all([setNvidiaKey(apiKey), saveSettings(safeSettings)]);
       setSettings(safeSettings);
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 2500);
@@ -81,28 +70,14 @@ export default function SettingsScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View>
-          <SectionTitle>API keys</SectionTitle>
+          <SectionTitle>NVIDIA API</SectionTitle>
           <Card style={{ gap: spacing.md }}>
             <View>
-              <Text style={styles.label}>OpenAI (required for transcription)</Text>
+              <Text style={styles.label}>API key</Text>
               <TextInput
-                value={openAI}
-                onChangeText={setOpenAI}
-                placeholder="sk-…"
-                placeholderTextColor={colors.muted}
-                autoCapitalize="none"
-                autoCorrect={false}
-                secureTextEntry={!reveal}
-                style={styles.input}
-              />
-              <Muted style={styles.hint}>Used for Whisper speech-to-text.</Muted>
-            </View>
-            <View>
-              <Text style={styles.label}>Anthropic (optional, for coaching)</Text>
-              <TextInput
-                value={anthropic}
-                onChangeText={setAnthropic}
-                placeholder="sk-ant-…"
+                value={apiKey}
+                onChangeText={setApiKey}
+                placeholder="nvapi-…"
                 placeholderTextColor={colors.muted}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -110,17 +85,33 @@ export default function SettingsScreen() {
                 style={styles.input}
               />
               <Muted style={styles.hint}>
-                Claude reads the transcript and scores coherence, structure and relevance, with
-                written notes.
+                Free at build.nvidia.com. Used for both transcription and coaching. Stored in the
+                device keychain and only ever sent to integrate.api.nvidia.com.
               </Muted>
             </View>
             <Pressable onPress={() => setReveal((v) => !v)}>
-              <Text style={styles.link}>{reveal ? 'Hide keys' : 'Show keys'}</Text>
+              <Text style={styles.link}>{reveal ? 'Hide key' : 'Show key'}</Text>
             </Pressable>
-            <Muted style={styles.hint}>
-              Keys are stored in the device keychain and only ever sent to the provider they belong
-              to.
-            </Muted>
+          </Card>
+        </View>
+
+        <View>
+          <SectionTitle>Models</SectionTitle>
+          <Card style={{ gap: spacing.md }}>
+            <ModelField
+              label="Speech to text"
+              value={settings.transcribeModel}
+              defaultValue={DEFAULT_SETTINGS.transcribeModel}
+              hint="Must accept audio input over chat completions. Gemma 3n does; each chunk is under 30 seconds."
+              onChange={(transcribeModel) => setSettings((s) => ({ ...s, transcribeModel }))}
+            />
+            <ModelField
+              label="Coach"
+              value={settings.coachModel}
+              defaultValue={DEFAULT_SETTINGS.coachModel}
+              hint="Any text model on build.nvidia.com that can return JSON. Nemotron 3 Ultra is NVIDIA's most capable."
+              onChange={(coachModel) => setSettings((s) => ({ ...s, coachModel }))}
+            />
           </Card>
         </View>
 
@@ -151,25 +142,57 @@ export default function SettingsScreen() {
           </Card>
         </View>
 
-        <Button
-          title={justSaved ? 'Saved' : 'Save'}
-          onPress={() => void save()}
-          loading={saving}
-        />
+        <Button title={justSaved ? 'Saved' : 'Save'} onPress={() => void save()} loading={saving} />
 
         <View>
           <SectionTitle>How scoring works</SectionTitle>
           <Card>
             <Muted>
               The delivery rubric runs on your phone: keeping going (20), pace (20), fluency (20),
-              vocabulary range (15), staying on topic (15) and flow (10). With an Anthropic key,
-              the coach adds three content scores out of 10 and the final number is 60% rubric,
-              40% coach.
+              vocabulary range (15), staying on topic (15) and flow (10). The coach model adds
+              three content scores out of 10 and the final number is 60% rubric, 40% coach.
             </Muted>
           </Card>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
+  );
+}
+
+function ModelField({
+  label,
+  value,
+  defaultValue,
+  hint,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  defaultValue: string;
+  hint: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <View>
+      <View style={styles.labelRow}>
+        <Text style={styles.label}>{label}</Text>
+        {value !== defaultValue && (
+          <Pressable onPress={() => onChange(defaultValue)}>
+            <Text style={styles.link}>Reset</Text>
+          </Pressable>
+        )}
+      </View>
+      <TextInput
+        value={value}
+        onChangeText={onChange}
+        placeholder={defaultValue}
+        placeholderTextColor={colors.muted}
+        autoCapitalize="none"
+        autoCorrect={false}
+        style={styles.input}
+      />
+      <Muted style={styles.hint}>{hint}</Muted>
+    </View>
   );
 }
 
@@ -215,6 +238,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   content: { padding: spacing.md, gap: spacing.lg },
   label: { color: colors.text, fontSize: 15, fontWeight: '600', marginBottom: spacing.sm },
+  labelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   input: {
     backgroundColor: colors.cardAlt,
     borderRadius: radius.sm,

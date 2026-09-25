@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.128.0",
     "@react-native-async-storage/async-storage": "2.2.0",
     "expo": "~57.0.25",
     "expo-asset": "~57.0.18",
@@ -19,8 +18,7 @@
     "react": "19.2.3",
     "react-native": "0.86.3",
     "react-native-safe-area-context": "~5.7.0",
-    "react-native-screens": "~4.26.0",
-    "zod": "^4.6.5"
+    "react-native-screens": "~4.26.0"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",

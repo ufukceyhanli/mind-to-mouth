@@ -1,14 +1,9 @@
-export type TranscriptSegment = {
-  start: number;
-  end: number;
-  text: string;
-};
-
 export type Transcription = {
   text: string;
-  segments: TranscriptSegment[];
-  /** Audio duration as reported by the transcription service, in seconds. */
-  duration: number | null;
+  /** Longest silence in the recording, measured from the audio itself. */
+  longestPauseSec: number | null;
+  /** How many audio chunks were sent for transcription. */
+  chunkCount: number;
 };
 
 export type ScoreComponent = {
@@ -63,10 +58,16 @@ export type Settings = {
   maxSeconds: number;
   /** Thinking time between seeing the word and recording, in seconds. */
   prepSeconds: number;
+  /** build.nvidia.com model id used to turn audio into text. */
+  transcribeModel: string;
+  /** build.nvidia.com model id used for coaching and content scores. */
+  coachModel: string;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
   minSeconds: 120,
   maxSeconds: 300,
   prepSeconds: 10,
+  transcribeModel: 'google/gemma-3n-e4b-it',
+  coachModel: 'nvidia/nemotron-3-ultra-550b-a55b',
 };

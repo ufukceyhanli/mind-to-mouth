@@ -7,7 +7,7 @@ import { SessionRow } from '../src/components/SessionRow';
 import { Button, Card, Muted, SectionTitle, Stat } from '../src/components/ui';
 import {
   computeStreak,
-  getOpenAIKey,
+  getNvidiaKey,
   loadSessions,
   practisedToday,
 } from '../src/storage';
@@ -17,13 +17,13 @@ import type { Session } from '../src/types';
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const [sessions, setSessions] = useState<Session[]>([]);
-  const [hasOpenAIKey, setHasOpenAIKey] = useState<boolean | null>(null);
+  const [hasKey, setHasOpenAIKey] = useState<boolean | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
       (async () => {
-        const [list, key] = await Promise.all([loadSessions(), getOpenAIKey()]);
+        const [list, key] = await Promise.all([loadSessions(), getNvidiaKey()]);
         if (cancelled) return;
         setSessions(list);
         setHasOpenAIKey(Boolean(key));
@@ -79,12 +79,12 @@ export default function HomeScreen() {
         </View>
       </Card>
 
-      {hasOpenAIKey === false ? (
+      {hasKey === false ? (
         <Card style={styles.setupCard}>
           <Text style={styles.setupTitle}>One thing before you start</Text>
           <Muted style={{ marginBottom: spacing.md }}>
-            Your talks are transcribed with OpenAI Whisper, so the app needs an OpenAI API key.
-            It stays in your phone’s keychain.
+            Your talks are transcribed and coached by models on build.nvidia.com, so the app
+            needs a free NVIDIA API key. It stays in your phone’s keychain.
           </Muted>
           <Button title="Add API key" onPress={() => router.push('/settings')} />
         </Card>
@@ -92,7 +92,7 @@ export default function HomeScreen() {
         <Button
           title={doneToday ? 'Practise again' : 'Start today’s talk'}
           onPress={() => router.push('/practice')}
-          disabled={hasOpenAIKey === null}
+          disabled={hasKey === null}
           style={styles.startButton}
         />
       )}
@@ -121,7 +121,7 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {sessions.length === 0 && hasOpenAIKey && (
+      {sessions.length === 0 && hasKey && (
         <Card>
           <Text style={styles.howTitle}>How it works</Text>
           <Muted>1. You get a random word.</Muted>

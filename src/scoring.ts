@@ -81,17 +81,6 @@ function countTopicMentions(tokens: string[], topic: string): number {
   return tokens.filter((t) => targets.has(stem(t))).length;
 }
 
-function longestPause(transcription: Transcription): number | null {
-  const segs = transcription.segments;
-  if (segs.length < 2) return null;
-  let longest = 0;
-  for (let i = 1; i < segs.length; i += 1) {
-    const gap = segs[i].start - segs[i - 1].end;
-    if (gap > longest) longest = gap;
-  }
-  return Math.round(longest * 10) / 10;
-}
-
 export function scoreTalk(params: {
   transcription: Transcription;
   topic: string;
@@ -108,7 +97,7 @@ export function scoreTalk(params: {
   const contentTokens = tokens.filter((t) => !STOP_WORDS.has(t));
   const uniqueWords = new Set(contentTokens).size;
   const topicMentions = countTopicMentions(tokens, topic);
-  const pause = longestPause(transcription);
+  const pause = transcription.longestPauseSec;
 
   const components: ScoreComponent[] = [];
 

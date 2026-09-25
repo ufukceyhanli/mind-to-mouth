@@ -1,9 +1,11 @@
 import {
-  RecordingPresets,
+  AudioQuality,
+  IOSOutputFormat,
   requestRecordingPermissionsAsync,
   setAudioModeAsync,
   useAudioRecorder,
   useAudioRecorderState,
+  type RecordingOptions,
 } from 'expo-audio';
 import { File } from 'expo-file-system';
 import * as Haptics from 'expo-haptics';
@@ -13,34 +15,63 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { describeCoachError, getCoachFeedback } from '../src/coach';
-import { Button, Muted } from '../src/components/ui';
-import { blendScore, scoreTalk } from '../src/scoring';
 import {
-  getAnthropicKey,
-  getOpenAIKey,
-  loadSessions,
-  loadSettings,
-  saveSession,
-} from '../src/storage';
+  analyzePauses,
+  encodeImaAdpcmWav,
+  isWav,
+  parseWav,
+  splitAtQuietPoints,
+} from '../src/audio';
+import { Button, Muted } from '../src/components/ui';
+import { describeNvidiaError, getCoachFeedback, transcribeChunks } from '../src/nvidia';
+import { blendScore, scoreTalk } from '../src/scoring';
+import { getNvidiaKey, loadSessions, loadSettings, saveSession } from '../src/storage';
 import { colors, formatClock, radius, spacing } from '../src/theme';
-import { transcribeRecording } from '../src/transcribe';
-import { DEFAULT_SETTINGS, type CoachFeedback, type Session, type Settings } from '../src/types';
+import {
+  DEFAULT_SETTINGS,
+  type CoachFeedback,
+  type Session,
+  type Settings,
+  type Transcription,
+} from '../src/types';
 import { pickWord } from '../src/words';
 
 type Phase = 'loading' | 'no-permission' | 'reveal' | 'recording' | 'processing' | 'error';
 
 type Recorded = { uri: string; durationSec: number };
 
+/**
+ * Uncompressed 16 kHz mono WAV. We compress it ourselves afterwards (IMA
+ * ADPCM) because that format is decodable by every server-side audio stack,
+ * unlike AAC, and lets us cut the talk at quiet moments before upload.
+ */
+const WAV_RECORDING: RecordingOptions = {
+  extension: '.wav',
+  sampleRate: 16000,
+  numberOfChannels: 1,
+  bitRate: 256000,
+  isMeteringEnabled: true,
+  ios: {
+    outputFormat: IOSOutputFormat.LINEARPCM,
+    audioQuality: AudioQuality.MAX,
+    linearPCMBitDepth: 16,
+    linearPCMIsBigEndian: false,
+    linearPCMIsFloat: false,
+  },
+  android: {
+    // Android's recorder cannot write WAV; this file is sent as-is instead.
+    extension: '.m4a',
+    outputFormat: 'mpeg4',
+    audioEncoder: 'aac',
+  },
+  web: { mimeType: 'audio/wav' },
+};
+
 export default function PracticeScreen() {
   useKeepAwake();
   const insets = useSafeAreaInsets();
 
-  const recorder = useAudioRecorder({
-    ...RecordingPresets.HIGH_QUALITY,
-    numberOfChannels: 1,
-    isMeteringEnabled: true,
-  });
+  const recorder = useAudioRecorder(WAV_RECORDING);
   const recorderState = useAudioRecorderState(recorder, 100);
 
   const [phase, setPhase] = useState<Phase>('loading');
@@ -56,23 +87,20 @@ export default function PracticeScreen() {
   const startAtRef = useRef<number | null>(null);
   const reachedMinRef = useRef(false);
   const finishingRef = useRef(false);
-  const openAIKeyRef = useRef<string | null>(null);
-  const anthropicKeyRef = useRef<string | null>(null);
+  const apiKeyRef = useRef<string | null>(null);
 
   // ---- Setup ---------------------------------------------------------------
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [loadedSettings, sessions, openAIKey, anthropicKey] = await Promise.all([
+      const [loadedSettings, sessions, apiKey] = await Promise.all([
         loadSettings(),
         loadSessions(),
-        getOpenAIKey(),
-        getAnthropicKey(),
+        getNvidiaKey(),
       ]);
       if (cancelled) return;
-      openAIKeyRef.current = openAIKey;
-      anthropicKeyRef.current = anthropicKey;
+      apiKeyRef.current = apiKey;
       recentWordsRef.current = sessions.slice(0, 30).map((s) => s.word);
       setSettings(loadedSettings);
       setPrepLeft(loadedSettings.prepSeconds);
@@ -112,56 +140,70 @@ export default function PracticeScreen() {
   }, [recorder]);
 
   const runPipeline = useCallback(
-    async (recorded: Recorded, topic: string, currentSettings: Settings) => {
+    async (rec: Recorded, topic: string, currentSettings: Settings) => {
       setPhase('processing');
       try {
-        const openAIKey = openAIKeyRef.current;
-        if (!openAIKey) {
-          throw new Error('No OpenAI API key. Add one in Settings to get transcripts.');
+        const apiKey = apiKeyRef.current;
+        if (!apiKey) {
+          throw new Error('No NVIDIA API key. Add one in Settings to get transcripts.');
         }
 
-        setStatusText('Transcribing your talk…');
-        const transcription = await transcribeRecording({
-          uri: recorded.uri,
-          apiKey: openAIKey,
-          topic,
-        });
-        if (transcription.text.length === 0) {
-          throw new Error('The recording came back silent. Check the microphone and try again.');
+        setStatusText('Preparing audio…');
+        const bytes = await new File(rec.uri).bytes();
+
+        let chunks: Uint8Array[];
+        let longestPauseSec: number | null = null;
+        if (isWav(bytes)) {
+          const pcm = parseWav(bytes);
+          longestPauseSec = analyzePauses(pcm).longestPauseSec;
+          chunks = splitAtQuietPoints(pcm).map((c) => encodeImaAdpcmWav(c));
+        } else {
+          // Non-WAV (Android AAC): send the whole file in one go.
+          chunks = [bytes];
         }
+
+        setStatusText(`Transcribing… 0/${chunks.length}`);
+        const text = await transcribeChunks({
+          apiKey,
+          model: currentSettings.transcribeModel,
+          chunks,
+          onProgress: (done, total) => setStatusText(`Transcribing… ${done}/${total}`),
+        });
+        if (text.length === 0) {
+          throw new Error('No speech was recognised. Check the microphone and try again.');
+        }
+        const transcription: Transcription = { text, longestPauseSec, chunkCount: chunks.length };
 
         setStatusText('Scoring…');
         const rubric = scoreTalk({
           transcription,
           topic,
-          durationSec: recorded.durationSec,
+          durationSec: rec.durationSec,
           minSeconds: currentSettings.minSeconds,
         });
 
         let coach: CoachFeedback | null = null;
         let coachError: string | null = null;
-        const anthropicKey = anthropicKeyRef.current;
-        if (anthropicKey) {
-          setStatusText('Asking your coach…');
-          try {
-            coach = await getCoachFeedback({
-              apiKey: anthropicKey,
-              topic,
-              transcript: transcription.text,
-              durationSec: recorded.durationSec,
-              rubric,
-            });
-          } catch (e) {
-            coachError = describeCoachError(e);
-          }
+        setStatusText('Asking your coach…');
+        try {
+          coach = await getCoachFeedback({
+            apiKey,
+            model: currentSettings.coachModel,
+            topic,
+            transcript: text,
+            durationSec: rec.durationSec,
+            rubric,
+          });
+        } catch (e) {
+          coachError = describeNvidiaError(e);
         }
 
         const session: Session = {
           id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           word: topic,
           createdAt: new Date().toISOString(),
-          durationSec: Math.round(recorded.durationSec),
-          transcript: transcription.text,
+          durationSec: Math.round(rec.durationSec),
+          transcript: text,
           score: rubric,
           coach,
           coachError,
@@ -170,7 +212,7 @@ export default function PracticeScreen() {
         await saveSession(session);
 
         try {
-          new File(recorded.uri).delete();
+          new File(rec.uri).delete();
         } catch {
           // The cache directory is cleaned by the OS eventually; not critical.
         }
@@ -178,7 +220,7 @@ export default function PracticeScreen() {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         router.replace({ pathname: '/result/[id]', params: { id: session.id } });
       } catch (e) {
-        setErrorText(e instanceof Error ? e.message : 'Something went wrong.');
+        setErrorText(describeNvidiaError(e));
         setPhase('error');
       }
     },
@@ -365,7 +407,7 @@ export default function PracticeScreen() {
       <View style={[container, styles.center]}>
         <ActivityIndicator color={colors.accent} size="large" />
         <Text style={[styles.heading, { marginTop: spacing.lg }]}>{statusText}</Text>
-        <Muted style={styles.centeredText}>This usually takes 10 to 30 seconds.</Muted>
+        <Muted style={styles.centeredText}>This usually takes 15 to 45 seconds.</Muted>
       </View>
     );
   }

@@ -122,7 +122,7 @@ export default function ResultScreen() {
             <Muted>
               {session.coachError
                 ? `Coaching unavailable: ${session.coachError}`
-                : 'Add an Anthropic API key in Settings to get written coaching on coherence, structure and staying on topic.'}
+                : 'No coaching was recorded for this talk.'}
             </Muted>
           </Card>
         )}
