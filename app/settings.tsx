@@ -5,6 +5,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
@@ -147,6 +148,24 @@ export default function SettingsScreen() {
               format={(v) => `${v / 60} min`}
               onChange={(maxSeconds) => setSettings((s) => ({ ...s, maxSeconds }))}
             />
+            <View>
+              <View style={styles.switchRow}>
+                <Text style={[styles.label, { marginBottom: 0 }]}>Pronunciation check</Text>
+                <Switch
+                  value={settings.checkPronunciation}
+                  onValueChange={(checkPronunciation) =>
+                    setSettings((s) => ({ ...s, checkPronunciation }))
+                  }
+                  trackColor={{ true: colors.accent, false: colors.border }}
+                  thumbColor={colors.text}
+                />
+              </View>
+              <Muted style={styles.hint}>
+                After scoring, listens to the talk again for words worth practising, with the
+                speech-to-text model. Doubles the audio requests and adds 15 to 30 seconds on the
+                result screen.
+              </Muted>
+            </View>
           </Card>
         </View>
 
@@ -247,6 +266,7 @@ const styles = StyleSheet.create({
   content: { padding: spacing.md, gap: spacing.lg },
   label: { color: colors.text, fontSize: 15, fontWeight: '600', marginBottom: spacing.sm },
   labelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   input: {
     backgroundColor: colors.cardAlt,
     borderRadius: radius.sm,

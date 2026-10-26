@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { PronunciationCard } from '../../src/components/PronunciationCard';
 import { RecordingPlayer } from '../../src/components/RecordingPlayer';
 import {
   Button,
@@ -84,6 +85,16 @@ export default function ResultScreen() {
         <View>
           <SectionTitle>Listen back</SectionTitle>
           <RecordingPlayer fileName={session.audioFile} durationSec={session.durationSec} />
+        </View>
+      )}
+
+      {session.pronunciation && session.pronunciation.status !== 'off' && (
+        <View>
+          <SectionTitle>Worth a listen</SectionTitle>
+          <PronunciationCard
+            session={session}
+            onReport={(pronunciation) => setSession((s) => (s ? { ...s, pronunciation } : s))}
+          />
         </View>
       )}
 

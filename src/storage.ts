@@ -27,6 +27,14 @@ export async function saveSession(session: Session): Promise<void> {
   await AsyncStorage.setItem(SESSIONS_KEY, JSON.stringify(next));
 }
 
+/** Merges `patch` into a stored session. A session that no longer exists is left alone. */
+export async function updateSession(id: string, patch: Partial<Session>): Promise<void> {
+  const sessions = await loadSessions();
+  if (!sessions.some((s) => s.id === id)) return;
+  const next = sessions.map((s) => (s.id === id ? { ...s, ...patch } : s));
+  await AsyncStorage.setItem(SESSIONS_KEY, JSON.stringify(next));
+}
+
 export async function getSession(id: string): Promise<Session | null> {
   const sessions = await loadSessions();
   return sessions.find((s) => s.id === id) ?? null;

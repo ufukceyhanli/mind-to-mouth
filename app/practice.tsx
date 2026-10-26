@@ -221,6 +221,12 @@ export default function PracticeScreen() {
           coachError,
           finalScore: blendScore(rubric, coach),
           audioFile,
+          // Checked lazily by the result screen so the score is not held up.
+          pronunciation: {
+            status: currentSettings.checkPronunciation && audioFile ? 'pending' : 'off',
+            issues: [],
+            error: null,
+          },
         };
         await saveSession(session);
 

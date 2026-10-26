@@ -106,6 +106,12 @@ npx expo export --platform ios   # prove the bundle builds
 - Speech-to-text models often clean up "um" and "uh" on their own, so the
   fluency score is kinder than a human listener would be. The coach prompt
   knows this and focuses on content.
+- The result screen runs a second pass over the same audio chunks with the
+  speech-to-text model, asking which words sounded off. Each flagged word
+  gets a tip, a "Hear it" button (system voice via expo-speech) and a
+  "Hear yours" button that plays that moment of the saved recording. The
+  model's picks are suggestions, not phoneme scores. Turn the pass off in
+  Settings to halve the audio requests.
 - After scoring, the recording is moved into the app's documents folder
   (`recordings/<session id>.wav`) so each talk can be played back from its
   result screen. Deleting a talk from History removes its audio too. The

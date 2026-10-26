@@ -8,7 +8,7 @@
  *  - coaching: Nemotron 3 Ultra reads the transcript and returns JSON scores
  */
 import { bytesToBase64 } from './audio';
-import type { CoachFeedback, ScoreBreakdown } from './types';
+import type { CoachFeedback, PronunciationIssue, ScoreBreakdown } from './types';
 
 export const NVIDIA_BASE_URL = 'https://integrate.api.nvidia.com/v1';
 export const DEFAULT_TRANSCRIBE_MODEL = 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning';
@@ -250,6 +250,128 @@ export async function transcribeChunks(params: {
     .join(' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+// ---- Pronunciation ----------------------------------------------------------
+
+const PRONUNCIATION_PROMPT =
+  'You are a pronunciation coach for people practising spoken English. ' +
+  'Listen to this clip and pick out words the speaker mispronounced, or said unclearly enough ' +
+  'that a native listener would notice or misunderstand. Ignore accent alone, filler words, ' +
+  'fast speech and grammar. ' +
+  'Reply with a JSON array only, no prose. Each item has four keys: ' +
+  '"word" (the word the speaker meant), "heard" (what it sounded like, in plain letters), ' +
+  '"tip" (one short sentence on how to say it, spelling out the syllables with the stressed ' +
+  'syllable in capitals, for example "de-VEL-op-ment"), and ' +
+  '"atSec" (seconds from the start of this clip, as a number). ' +
+  'At most 5 items. Reply with [] if nothing stands out.';
+
+/** Extracts the first JSON array from a model reply, tolerating fences and chatter. */
+function extractJsonArray(raw: string): unknown[] {
+  let text = raw.trim();
+  text = text
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/, '')
+    .trim();
+  const start = text.indexOf('[');
+  const end = text.lastIndexOf(']');
+  if (start === -1 || end <= start) {
+    // "none", "nothing stands out" and similar count as an empty list.
+    if (/^(none|nothing|no issues?|\[\])?\.?$/i.test(text) || text.length < 40) return [];
+    throw new Error('The pronunciation check did not return JSON.');
+  }
+  const parsed: unknown = JSON.parse(text.slice(start, end + 1));
+  return Array.isArray(parsed) ? parsed : [];
+}
+
+/** Keeps letters, digits, apostrophes and hyphens: enough for a dictionary word. */
+function normaliseWord(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}'-]+/gu, ' ')
+    .trim();
+}
+
+function toIssue(item: unknown, offsetSec: number): PronunciationIssue | null {
+  if (!item || typeof item !== 'object') return null;
+  const o = item as Record<string, unknown>;
+  const word = typeof o.word === 'string' ? normaliseWord(o.word) : '';
+  if (word.length === 0 || word.length > 40) return null;
+  const heard = typeof o.heard === 'string' ? o.heard.trim() : '';
+  const tip = typeof o.tip === 'string' ? o.tip.trim() : '';
+  const at = typeof o.atSec === 'number' && Number.isFinite(o.atSec) && o.atSec >= 0
+    ? Math.round((offsetSec + o.atSec) * 10) / 10
+    : null;
+  return { word, heard, tip, atSec: at };
+}
+
+export async function assessPronunciationChunk(params: {
+  apiKey: string;
+  model: string;
+  wavBytes: Uint8Array;
+  offsetSec: number;
+  onRetry?: RetryListener;
+}): Promise<PronunciationIssue[]> {
+  const { apiKey, model, wavBytes, offsetSec, onRetry } = params;
+  const base64 = bytesToBase64(wavBytes);
+  if (base64.length > MAX_INLINE_BASE64_CHARS) {
+    throw new NvidiaApiError(413, 'Audio chunk exceeds the inline size limit.');
+  }
+  const content = await chatCompletion(
+    apiKey,
+    {
+      model,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'audio_url', audio_url: { url: `data:audio/wav;base64,${base64}` } },
+            { type: 'text', text: PRONUNCIATION_PROMPT },
+          ],
+        },
+      ],
+      max_tokens: 800,
+      temperature: 0,
+      top_p: 1,
+      chat_template_kwargs: { enable_thinking: false },
+    },
+    onRetry,
+  );
+  return extractJsonArray(content)
+    .map((item) => toIssue(item, offsetSec))
+    .filter((issue): issue is PronunciationIssue => issue !== null);
+}
+
+/**
+ * Second pass over the same chunks the transcript came from. Each chunk is
+ * judged on its own, so the same word can come back twice; the first
+ * occurrence wins. The result is ordered by time and capped so the card
+ * stays readable.
+ */
+export async function assessPronunciation(params: {
+  apiKey: string;
+  model: string;
+  chunks: { wavBytes: Uint8Array; offsetSec: number }[];
+  onProgress?: (done: number, total: number) => void;
+  onRetry?: RetryListener;
+}): Promise<PronunciationIssue[]> {
+  const { apiKey, model, chunks, onProgress, onRetry } = params;
+  let done = 0;
+  const perChunk = await mapWithConcurrency(chunks, 2, async ({ wavBytes, offsetSec }) => {
+    const issues = await assessPronunciationChunk({ apiKey, model, wavBytes, offsetSec, onRetry });
+    done += 1;
+    onProgress?.(done, chunks.length);
+    return issues;
+  });
+  const seen = new Set<string>();
+  const merged: PronunciationIssue[] = [];
+  for (const issue of perChunk.flat()) {
+    if (seen.has(issue.word)) continue;
+    seen.add(issue.word);
+    merged.push(issue);
+  }
+  merged.sort((a, b) => (a.atSec ?? Infinity) - (b.atSec ?? Infinity));
+  return merged.slice(0, 10);
 }
 
 // ---- Coaching ---------------------------------------------------------------

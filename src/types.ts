@@ -38,6 +38,29 @@ export type CoachFeedback = {
   nextDrill: string;
 };
 
+export type PronunciationIssue = {
+  /** The word the speaker meant. */
+  word: string;
+  /** What it sounded like. */
+  heard: string;
+  /** One short sentence on how to say it. */
+  tip: string;
+  /** Seconds from the start of the talk, or null when the model gave none. */
+  atSec: number | null;
+};
+
+export type PronunciationReport = {
+  /**
+   * pending: not checked yet (runs the first time the result is opened)
+   * done: checked; `issues` may be empty
+   * error: the check failed; `error` says why
+   * off: the setting was disabled when this talk was recorded
+   */
+  status: 'pending' | 'done' | 'error' | 'off';
+  issues: PronunciationIssue[];
+  error: string | null;
+};
+
 export type Session = {
   id: string;
   word: string;
@@ -55,6 +78,8 @@ export type Session = {
    * before playback existed.
    */
   audioFile?: string | null;
+  /** Words worth a second listen. Absent on sessions saved before the feature existed. */
+  pronunciation?: PronunciationReport;
 };
 
 export type Settings = {
@@ -68,6 +93,8 @@ export type Settings = {
   transcribeModel: string;
   /** build.nvidia.com model id used for coaching and content scores. */
   coachModel: string;
+  /** Run a second pass over the audio to flag words worth practising. */
+  checkPronunciation: boolean;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -76,4 +103,5 @@ export const DEFAULT_SETTINGS: Settings = {
   prepSeconds: 10,
   transcribeModel: 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning',
   coachModel: 'nvidia/nemotron-3-ultra-550b-a55b',
+  checkPronunciation: true,
 };
