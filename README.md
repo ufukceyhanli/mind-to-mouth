@@ -106,8 +106,10 @@ npx expo export --platform ios   # prove the bundle builds
 - Speech-to-text models often clean up "um" and "uh" on their own, so the
   fluency score is kinder than a human listener would be. The coach prompt
   knows this and focuses on content.
-- Recordings are deleted from the cache after scoring. Only the transcript and
-  scores are kept, in AsyncStorage on the device.
+- After scoring, the recording is moved into the app's documents folder
+  (`recordings/<session id>.wav`) so each talk can be played back from its
+  result screen. Deleting a talk from History removes its audio too. The
+  transcript and scores live in AsyncStorage on the device.
 - Android's recorder cannot write WAV, so on Android the whole AAC file is sent
   in one request; long talks will exceed the inline limit there. iOS is the
   focus.

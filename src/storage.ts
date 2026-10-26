@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 
+import { deleteRecording } from './recordings';
 import { DEFAULT_SETTINGS, type Session, type Settings } from './types';
 
 const SESSIONS_KEY = 'mtm.sessions.v1';
@@ -33,10 +34,12 @@ export async function getSession(id: string): Promise<Session | null> {
 
 export async function deleteSession(id: string): Promise<void> {
   const sessions = await loadSessions();
+  const target = sessions.find((s) => s.id === id);
   await AsyncStorage.setItem(
     SESSIONS_KEY,
     JSON.stringify(sessions.filter((s) => s.id !== id)),
   );
+  if (target?.audioFile) deleteRecording(target.audioFile);
 }
 
 // ---- Settings -------------------------------------------------------------

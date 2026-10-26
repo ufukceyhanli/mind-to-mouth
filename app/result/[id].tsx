@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { RecordingPlayer } from '../../src/components/RecordingPlayer';
 import {
   Button,
   Card,
@@ -78,6 +79,13 @@ export default function ResultScreen() {
           <Stat label="fillers" value={String(score.stats.fillerCount)} />
         </View>
       </Card>
+
+      {session.audioFile && (
+        <View>
+          <SectionTitle>Listen back</SectionTitle>
+          <RecordingPlayer fileName={session.audioFile} durationSec={session.durationSec} />
+        </View>
+      )}
 
       <View>
         <SectionTitle>

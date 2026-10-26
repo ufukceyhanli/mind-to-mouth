@@ -49,6 +49,12 @@ export type Session = {
   coachError: string | null;
   /** Blended score shown to the user: local rubric + coach when available. */
   finalScore: number;
+  /**
+   * File name of the stored recording inside the app's recordings folder,
+   * or null when the audio could not be kept. Absent on sessions saved
+   * before playback existed.
+   */
+  audioFile?: string | null;
 };
 
 export type Settings = {

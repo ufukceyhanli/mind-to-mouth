@@ -24,6 +24,7 @@ import {
 } from '../src/audio';
 import { Button, Muted } from '../src/components/ui';
 import { describeNvidiaError, getCoachFeedback, transcribeChunks } from '../src/nvidia';
+import { persistRecording } from '../src/recordings';
 import { blendScore, scoreTalk } from '../src/scoring';
 import { getNvidiaKey, loadSessions, loadSettings, saveSession } from '../src/storage';
 import { colors, formatClock, radius, spacing } from '../src/theme';
@@ -198,8 +199,18 @@ export default function PracticeScreen() {
           coachError = describeNvidiaError(e);
         }
 
+        const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+        // Keep the audio so the talk can be listened to again from History.
+        let audioFile: string | null = null;
+        try {
+          audioFile = await persistRecording(rec.uri, id);
+        } catch {
+          // Playback is a nice-to-have; the transcript and scores still get saved.
+        }
+
         const session: Session = {
-          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          id,
           word: topic,
           createdAt: new Date().toISOString(),
           durationSec: Math.round(rec.durationSec),
@@ -208,14 +219,9 @@ export default function PracticeScreen() {
           coach,
           coachError,
           finalScore: blendScore(rubric, coach),
+          audioFile,
         };
         await saveSession(session);
-
-        try {
-          new File(rec.uri).delete();
-        } catch {
-          // The cache directory is cleaned by the OS eventually; not critical.
-        }
 
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         router.replace({ pathname: '/result/[id]', params: { id: session.id } });
