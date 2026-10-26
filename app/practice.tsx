@@ -168,6 +168,7 @@ export default function PracticeScreen() {
           model: currentSettings.transcribeModel,
           chunks,
           onProgress: (done, total) => setStatusText(`Transcribing… ${done}/${total}`),
+          onRetry: (attempt, max) => setStatusText(`NVIDIA is busy, retrying… (${attempt}/${max})`),
         });
         if (text.length === 0) {
           throw new Error('No speech was recognised. Check the microphone and try again.');

@@ -68,6 +68,6 @@ export const DEFAULT_SETTINGS: Settings = {
   minSeconds: 120,
   maxSeconds: 300,
   prepSeconds: 10,
-  transcribeModel: 'google/gemma-3n-e4b-it',
+  transcribeModel: 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning',
   coachModel: 'nvidia/nemotron-3-ultra-550b-a55b',
 };

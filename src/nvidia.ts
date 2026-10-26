@@ -2,7 +2,8 @@
  * NVIDIA API catalog client (build.nvidia.com). Both jobs go through the
  * OpenAI-compatible chat completions endpoint over plain HTTPS:
  *
- *  - transcription: an audio-capable model (Gemma 3n by default) receives
+ *  - transcription: an audio-capable model (Nemotron 3 Nano Omni by default;
+ *    Gemma 3n was retired from the catalog in July 2026) receives
  *    each short WAV chunk inline as a data URL and returns the words
  *  - coaching: Nemotron 3 Ultra reads the transcript and returns JSON scores
  */
@@ -10,15 +11,14 @@ import { bytesToBase64 } from './audio';
 import type { CoachFeedback, ScoreBreakdown } from './types';
 
 export const NVIDIA_BASE_URL = 'https://integrate.api.nvidia.com/v1';
-export const DEFAULT_TRANSCRIBE_MODEL = 'google/gemma-3n-e4b-it';
+export const DEFAULT_TRANSCRIBE_MODEL = 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning';
 export const DEFAULT_COACH_MODEL = 'nvidia/nemotron-3-ultra-550b-a55b';
 
 /** Inline payloads above roughly this many base64 characters are rejected. */
 export const MAX_INLINE_BASE64_CHARS = 170_000;
 
 type ChatMessageContent =
-  | string
-  | ({ type: 'text'; text: string } | { type: 'audio_url'; audio_url: { url: string } })[];
+  string | ({ type: 'text'; text: string } | { type: 'audio_url'; audio_url: { url: string } })[];
 
 type ChatCompletionRequest = {
   model: string;
@@ -45,7 +45,49 @@ export class NvidiaApiError extends Error {
   }
 }
 
-async function chatCompletion(apiKey: string, body: ChatCompletionRequest): Promise<string> {
+/** Statuses that mean "try again shortly": rate limited or an overloaded worker. */
+const RETRYABLE_STATUSES = new Set([429, 502, 503, 504]);
+const MAX_ATTEMPTS = 10;
+const MAX_BACKOFF_MS = 5_000;
+
+/** Called when a request is about to be retried; lets the UI say so. */
+export type RetryListener = (attempt: number, maxAttempts: number, status: number) => void;
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+/**
+ * The free build.nvidia.com endpoint regularly answers 502/503 ("worker
+ * request limit reached") for a second or two and then recovers, so every
+ * call retries with exponential backoff and a little jitter before giving up.
+ */
+async function chatCompletion(
+  apiKey: string,
+  body: ChatCompletionRequest,
+  onRetry?: RetryListener,
+): Promise<string> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
+    if (attempt > 0) {
+      // 0.8s, 1.6s, 3.2s, then 5s + jitter: ~40s of patience per request.
+      const base = Math.min(800 * 2 ** (attempt - 1), MAX_BACKOFF_MS);
+      await sleep(base + Math.random() * 400);
+    }
+    try {
+      return await chatCompletionOnce(apiKey, body);
+    } catch (error) {
+      lastError = error;
+      const retryable =
+        (error instanceof NvidiaApiError && RETRYABLE_STATUSES.has(error.status)) ||
+        error instanceof TypeError; // fetch network failure
+      if (!retryable) throw error;
+      const status = error instanceof NvidiaApiError ? error.status : 0;
+      onRetry?.(attempt + 1, MAX_ATTEMPTS, status);
+    }
+  }
+  throw lastError;
+}
+
+async function chatCompletionOnce(apiKey: string, body: ChatCompletionRequest): Promise<string> {
   const response = await fetch(`${NVIDIA_BASE_URL}/chat/completions`, {
     method: 'POST',
     headers: {
@@ -94,6 +136,10 @@ export function describeNvidiaError(error: unknown): string {
         return 'An audio chunk was too large for the API. Try a shorter talk.';
       case 429:
         return 'NVIDIA rate limit reached. Wait a minute and retry.';
+      case 502:
+      case 503:
+      case 504:
+        return "NVIDIA's servers are busy right now. Wait a moment and retry.";
       default:
         return `NVIDIA API error ${error.status}: ${error.message}`;
     }
@@ -113,8 +159,14 @@ const TRANSCRIBE_PROMPT =
 function cleanTranscriptChunk(raw: string): string {
   let text = raw.trim();
   // Strip code fences or surrounding quotes the model sometimes adds.
-  text = text.replace(/^```[a-z]*\s*/i, '').replace(/\s*```$/, '').trim();
-  if ((text.startsWith('"') && text.endsWith('"')) || (text.startsWith('“') && text.endsWith('”'))) {
+  text = text
+    .replace(/^```[a-z]*\s*/i, '')
+    .replace(/\s*```$/, '')
+    .trim();
+  if (
+    (text.startsWith('"') && text.endsWith('"')) ||
+    (text.startsWith('“') && text.endsWith('”'))
+  ) {
     text = text.slice(1, -1).trim();
   }
   // "(no speech)", "[silence]" and similar placeholders count as empty.
@@ -127,27 +179,35 @@ export async function transcribeChunk(params: {
   apiKey: string;
   model: string;
   wavBytes: Uint8Array;
+  onRetry?: RetryListener;
 }): Promise<string> {
-  const { apiKey, model, wavBytes } = params;
+  const { apiKey, model, wavBytes, onRetry } = params;
   const base64 = bytesToBase64(wavBytes);
   if (base64.length > MAX_INLINE_BASE64_CHARS) {
     throw new NvidiaApiError(413, 'Audio chunk exceeds the inline size limit.');
   }
-  const content = await chatCompletion(apiKey, {
-    model,
-    messages: [
-      {
-        role: 'user',
-        content: [
-          { type: 'audio_url', audio_url: { url: `data:audio/wav;base64,${base64}` } },
-          { type: 'text', text: TRANSCRIBE_PROMPT },
-        ],
-      },
-    ],
-    max_tokens: 1024,
-    temperature: 0,
-    top_p: 1,
-  });
+  const content = await chatCompletion(
+    apiKey,
+    {
+      model,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'audio_url', audio_url: { url: `data:audio/wav;base64,${base64}` } },
+            { type: 'text', text: TRANSCRIBE_PROMPT },
+          ],
+        },
+      ],
+      max_tokens: 1024,
+      temperature: 0,
+      top_p: 1,
+      // Nemotron "reasoning" variants think before answering. For a verbatim
+      // transcript that only adds latency and tokens; other models ignore this.
+      chat_template_kwargs: { enable_thinking: false },
+    },
+    onRetry,
+  );
   return cleanTranscriptChunk(content);
 }
 
@@ -174,11 +234,13 @@ export async function transcribeChunks(params: {
   model: string;
   chunks: Uint8Array[];
   onProgress?: (done: number, total: number) => void;
+  onRetry?: RetryListener;
 }): Promise<string> {
-  const { apiKey, model, chunks, onProgress } = params;
+  const { apiKey, model, chunks, onProgress, onRetry } = params;
   let done = 0;
-  const parts = await mapWithConcurrency(chunks, 3, async (wavBytes) => {
-    const text = await transcribeChunk({ apiKey, model, wavBytes });
+  // Two in flight: the free tier starts refusing requests when hit harder.
+  const parts = await mapWithConcurrency(chunks, 2, async (wavBytes) => {
+    const text = await transcribeChunk({ apiKey, model, wavBytes, onRetry });
     done += 1;
     onProgress?.(done, chunks.length);
     return text;
@@ -228,13 +290,22 @@ function stringList(v: unknown, max: number): string[] {
 
 function extractJsonObject(raw: string): unknown {
   let text = raw.trim();
-  text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-  const first = text.indexOf('{');
+  text = text
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/, '')
+    .trim();
   const last = text.lastIndexOf('}');
-  if (first === -1 || last === -1 || last <= first) {
-    throw new Error('The coach did not return JSON.');
+  // The coach model occasionally prefixes the object with a stray "{" or "{ \"":
+  // walk forward through the first few opening braces until one parses.
+  let start = text.indexOf('{');
+  for (let i = 0; i < 4 && start !== -1 && start < last; i += 1) {
+    try {
+      return JSON.parse(text.slice(start, last + 1)) as unknown;
+    } catch {
+      start = text.indexOf('{', start + 1);
+    }
   }
-  return JSON.parse(text.slice(first, last + 1)) as unknown;
+  throw new Error('The coach did not return JSON.');
 }
 
 export async function getCoachFeedback(params: {
