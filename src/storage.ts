@@ -35,20 +35,27 @@ export async function getSession(id: string): Promise<Session | null> {
 export async function deleteSession(id: string): Promise<void> {
   const sessions = await loadSessions();
   const target = sessions.find((s) => s.id === id);
-  await AsyncStorage.setItem(
-    SESSIONS_KEY,
-    JSON.stringify(sessions.filter((s) => s.id !== id)),
-  );
+  await AsyncStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions.filter((s) => s.id !== id)));
   if (target?.audioFile) deleteRecording(target.audioFile);
 }
 
 // ---- Settings -------------------------------------------------------------
 
+/** Models that build.nvidia.com has retired; a saved reference falls back to the default. */
+const RETIRED_MODELS = new Set(['google/gemma-3n-e4b-it']);
+
 export async function loadSettings(): Promise<Settings> {
   try {
     const raw = await AsyncStorage.getItem(SETTINGS_KEY);
     if (!raw) return DEFAULT_SETTINGS;
-    return { ...DEFAULT_SETTINGS, ...(JSON.parse(raw) as Partial<Settings>) };
+    const stored = JSON.parse(raw) as Partial<Settings>;
+    if (stored.transcribeModel && RETIRED_MODELS.has(stored.transcribeModel)) {
+      delete stored.transcribeModel;
+    }
+    if (stored.coachModel && RETIRED_MODELS.has(stored.coachModel)) {
+      delete stored.coachModel;
+    }
+    return { ...DEFAULT_SETTINGS, ...stored };
   } catch {
     return DEFAULT_SETTINGS;
   }
@@ -77,7 +84,20 @@ async function setSecret(key: string, value: string): Promise<void> {
   }
 }
 
-export const getNvidiaKey = () => getSecret(NVIDIA_KEY);
+// A key baked in at build time from .env (EXPO_PUBLIC_NVIDIA_API_KEY). Lets a
+// personal build skip the setup screen entirely. A key saved in Settings wins.
+const BUNDLED_NVIDIA_KEY = (process.env.EXPO_PUBLIC_NVIDIA_API_KEY ?? '').trim() || null;
+
+export const hasBundledNvidiaKey = BUNDLED_NVIDIA_KEY !== null;
+
+/** The key the user typed in Settings, or null if they never did. */
+export const getStoredNvidiaKey = () => getSecret(NVIDIA_KEY);
+
+/** The key to use for API calls: the stored override, else the bundled one. */
+export async function getNvidiaKey(): Promise<string | null> {
+  return (await getSecret(NVIDIA_KEY)) ?? BUNDLED_NVIDIA_KEY;
+}
+
 export const setNvidiaKey = (v: string) => setSecret(NVIDIA_KEY, v);
 
 // ---- Derived stats --------------------------------------------------------

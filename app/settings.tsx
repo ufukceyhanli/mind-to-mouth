@@ -12,7 +12,13 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, Card, Muted, SectionTitle } from '../src/components/ui';
-import { getNvidiaKey, loadSettings, saveSettings, setNvidiaKey } from '../src/storage';
+import {
+  getStoredNvidiaKey,
+  hasBundledNvidiaKey,
+  loadSettings,
+  saveSettings,
+  setNvidiaKey,
+} from '../src/storage';
 import { colors, radius, spacing } from '../src/theme';
 import { DEFAULT_SETTINGS, type Settings } from '../src/types';
 
@@ -31,7 +37,7 @@ export default function SettingsScreen() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [key, s] = await Promise.all([getNvidiaKey(), loadSettings()]);
+      const [key, s] = await Promise.all([getStoredNvidiaKey(), loadSettings()]);
       if (cancelled) return;
       setApiKey(key ?? '');
       setSettings(s);
@@ -77,7 +83,7 @@ export default function SettingsScreen() {
               <TextInput
                 value={apiKey}
                 onChangeText={setApiKey}
-                placeholder="nvapi-…"
+                placeholder={hasBundledNvidiaKey ? 'Using the built-in key' : 'nvapi-…'}
                 placeholderTextColor={colors.muted}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -85,8 +91,10 @@ export default function SettingsScreen() {
                 style={styles.input}
               />
               <Muted style={styles.hint}>
-                Free at build.nvidia.com. Used for both transcription and coaching. Stored in the
-                device keychain and only ever sent to integrate.api.nvidia.com.
+                {hasBundledNvidiaKey
+                  ? 'This build ships with a key. Enter one here only to override it; clear the field to go back to the built-in key.'
+                  : 'Free at build.nvidia.com. Used for both transcription and coaching.'}{' '}
+                Stored in the device keychain and only ever sent to integrate.api.nvidia.com.
               </Muted>
             </View>
             <Pressable onPress={() => setReveal((v) => !v)}>
@@ -102,7 +110,7 @@ export default function SettingsScreen() {
               label="Speech to text"
               value={settings.transcribeModel}
               defaultValue={DEFAULT_SETTINGS.transcribeModel}
-              hint="Must accept audio input over chat completions. Gemma 3n does; each chunk is under 30 seconds."
+              hint="Must accept audio input over chat completions. Nemotron 3 Nano Omni does; each chunk is under 30 seconds."
               onChange={(transcribeModel) => setSettings((s) => ({ ...s, transcribeModel }))}
             />
             <ModelField
@@ -149,8 +157,8 @@ export default function SettingsScreen() {
           <Card>
             <Muted>
               The delivery rubric runs on your phone: keeping going (20), pace (20), fluency (20),
-              vocabulary range (15), staying on topic (15) and flow (10). The coach model adds
-              three content scores out of 10 and the final number is 60% rubric, 40% coach.
+              vocabulary range (15), staying on topic (15) and flow (10). The coach model adds three
+              content scores out of 10 and the final number is 60% rubric, 40% coach.
             </Muted>
           </Card>
         </View>
