@@ -326,6 +326,21 @@ export function Badge({
   );
 }
 
+/** Round microphone emblem with soft concentric rings; the app's "audio" mark. */
+export function MicDisc({ size = 112, style }: { size?: number; style?: StyleProp<ViewStyle> }) {
+  const inner = size * 0.56;
+  const mid = size * 0.78;
+  return (
+    <View style={[styles.micOuter, { width: size, height: size, borderRadius: size / 2 }, style]}>
+      <View style={[styles.micMid, { width: mid, height: mid, borderRadius: mid / 2 }]}>
+        <View style={[styles.micInner, shadow, { width: inner, height: inner, borderRadius: inner / 2 }]}>
+          <Ionicons name="mic" size={Math.round(inner * 0.5)} color={colors.onAccent} />
+        </View>
+      </View>
+    </View>
+  );
+}
+
 // ---- Data display ----------------------------------------------------------
 
 export function ProgressBar({
@@ -462,6 +477,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
   },
   badgeText: { ...type.captionBold, fontSize: 14, color: colors.white, fontVariant: ['tabular-nums'] },
+  micOuter: { backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' },
+  micMid: { backgroundColor: '#FBC9A6', alignItems: 'center', justifyContent: 'center' },
+  micInner: { backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   barTrack: { backgroundColor: colors.surfaceAlt, overflow: 'hidden' },
   barFill: { height: '100%', borderRadius: radius.pill },
   scoreBadge: {

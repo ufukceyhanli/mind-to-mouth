@@ -2,7 +2,17 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, coverColor, formatClock, radius, scoreColor, shadow, spacing, type } from '../theme';
+import {
+  colors,
+  formatClock,
+  hashString,
+  radius,
+  scoreColor,
+  shadow,
+  spacing,
+  talkColor,
+  type,
+} from '../theme';
 import type { Session } from '../types';
 import { Muted, ProgressBar } from './ui';
 
@@ -14,67 +24,125 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
-/** Book-cover style tile for a talk: the word set large on a coloured card. */
-export function Cover({
-  word,
-  width,
-  height,
-  caption,
-  fontSize = 22,
-}: {
-  word: string;
-  width: number;
-  height: number;
-  caption?: string;
-  fontSize?: number;
-}) {
-  const palette = coverColor(word);
-  if (width < 80) {
-    // Thumbnail: just the initial, the full word sits next to it.
-    return (
-      <View style={[styles.cover, shadow, styles.coverThumb, { width, height, backgroundColor: palette.bg }]}>
-        <Text style={[styles.coverWord, { color: palette.fg, fontSize: width * 0.5 }]}>
-          {word.slice(0, 1)}
-        </Text>
-      </View>
-    );
+/** Deterministic bar heights (0.2..1) so a talk's waveform never changes. */
+function waveformHeights(seed: string, bars: number): number[] {
+  let h = hashString(seed) || 1;
+  const out: number[] = [];
+  for (let i = 0; i < bars; i++) {
+    h = (h * 1103515245 + 12345) >>> 0;
+    const r = (h >>> 8) / 0xffffff;
+    // Gentle envelope so the middle is louder than the edges.
+    const env = 0.55 + 0.45 * Math.sin((Math.PI * (i + 0.5)) / bars);
+    out.push(0.2 + 0.8 * r * env);
   }
+  return out;
+}
+
+/** Row of rounded bars that stands in for the audio of a talk. */
+export function Waveform({
+  seed,
+  bars,
+  height,
+  color,
+  barWidth = 4,
+  gap = 3,
+}: {
+  seed: string;
+  bars: number;
+  height: number;
+  color: string;
+  barWidth?: number;
+  gap?: number;
+}) {
+  const heights = waveformHeights(seed, bars);
   return (
-    <View
-      style={[styles.cover, shadow, { width, height, backgroundColor: palette.bg }]}
-    >
-      <Text
-        style={[styles.coverWord, { color: palette.fg, fontSize, lineHeight: fontSize * 1.1 }]}
-        numberOfLines={3}
-        adjustsFontSizeToFit
-      >
-        {word}
-      </Text>
-      <Ionicons name="mic" size={Math.round(width * 0.22)} color={palette.fg} style={{ opacity: 0.85 }} />
-      {caption ? (
-        <Text style={[styles.coverCaption, { color: palette.fg }]} numberOfLines={1}>
-          {caption}
-        </Text>
-      ) : null}
+    <View style={[styles.wave, { height, gap }]}>
+      {heights.map((h, i) => (
+        <View
+          key={i}
+          style={{
+            width: barWidth,
+            height: Math.max(barWidth, Math.round(h * height)),
+            borderRadius: barWidth / 2,
+            backgroundColor: color,
+          }}
+        />
+      ))}
     </View>
   );
 }
 
-/** Carousel card: cover on top, score bar, date and word below. */
-export function SessionCard({ session, width = 150 }: { session: Session; width?: number }) {
+/**
+ * Audio tile for a talk: a tinted rounded card with the talk's waveform, a
+ * play mark and, when given, the duration. Replaces the idea of a cover image.
+ */
+export function TalkTile({
+  seed,
+  width,
+  height,
+  durationSec,
+  showPlay = true,
+  style,
+}: {
+  seed: string;
+  width?: number;
+  height: number;
+  durationSec?: number;
+  showPlay?: boolean;
+  style?: object;
+}) {
+  const tint = talkColor(seed);
+  const compact = height < 80;
+  const barWidth = compact ? 3 : 5;
+  const gap = compact ? 2 : 4;
+  const inner = (width ?? 320) - (compact ? 12 : 56);
+  const bars = Math.max(5, Math.floor(inner / (barWidth + gap)));
+  return (
+    <View
+      style={[
+        styles.tile,
+        compact ? styles.tileCompact : shadow,
+        { height, backgroundColor: `${tint}22` },
+        width !== undefined ? { width } : null,
+        style,
+      ]}
+    >
+      <Waveform
+        seed={seed}
+        bars={bars}
+        height={compact ? height * 0.55 : height * 0.42}
+        color={tint}
+        barWidth={barWidth}
+        gap={gap}
+      />
+      {!compact && showPlay && (
+        <View style={[styles.playMark, { backgroundColor: tint }]}>
+          <Ionicons name="play" size={14} color={colors.white} style={{ marginLeft: 2 }} />
+        </View>
+      )}
+      {!compact && durationSec !== undefined && (
+        <View style={styles.durationPill}>
+          <Ionicons name="time-outline" size={13} color={colors.white} />
+          <Text style={styles.durationText}>{formatClock(durationSec)}</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+/** Carousel card: audio tile on top, score bar, date and word below. */
+export function SessionCard({ session, width = 164 }: { session: Session; width?: number }) {
   return (
     <Pressable
       accessibilityRole="button"
       onPress={() => openSession(session)}
       style={({ pressed }) => [styles.card, { width }, pressed && { opacity: 0.85 }]}
     >
-      <Cover word={session.word} width={width} height={width * 1.4} caption="Mind to Mouth" />
+      <TalkTile seed={session.word} width={width} height={116} durationSec={session.durationSec} />
       <ProgressBar value={session.finalScore} max={100} color={scoreColor(session.finalScore)} height={5} />
       <View style={styles.cardMeta}>
         <View style={{ flex: 1 }}>
-          <Muted style={styles.cardDate}>
-            {formatDate(session.createdAt)} · {formatClock(session.durationSec)}
-          </Muted>
+          <Muted style={styles.cardDate}>{formatDate(session.createdAt)}</Muted>
           <Text style={styles.cardWord} numberOfLines={2}>
             {session.word}
           </Text>
@@ -87,7 +155,7 @@ export function SessionCard({ session, width = 150 }: { session: Session; width?
   );
 }
 
-/** List row: small cover thumbnail, word, date and duration, score on the right. */
+/** List row: small waveform thumbnail, word, date and duration, score on the right. */
 export function SessionRow({
   session,
   onLongPress,
@@ -102,7 +170,7 @@ export function SessionRow({
       onLongPress={onLongPress}
       style={({ pressed }) => [styles.row, pressed && { opacity: 0.85 }]}
     >
-      <Cover word={session.word} width={52} height={68} fontSize={11} />
+      <TalkTile seed={session.word} width={60} height={60} />
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={styles.rowWord} numberOfLines={1}>
           {session.word}
@@ -126,20 +194,37 @@ export function SessionRow({
 }
 
 const styles = StyleSheet.create({
-  cover: {
-    borderRadius: radius.md,
-    padding: spacing.sm,
+  wave: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  tile: {
+    borderRadius: radius.lg,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.md,
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
-  coverThumb: { justifyContent: 'center', paddingVertical: 0 },
-  coverWord: {
-    fontFamily: type.title.fontFamily,
-    textAlign: 'center',
-    textTransform: 'capitalize',
+  tileCompact: { borderRadius: radius.md },
+  playMark: {
+    position: 'absolute',
+    left: spacing.sm + 4,
+    bottom: spacing.sm + 4,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  coverCaption: { ...type.captionBold, fontSize: 10, opacity: 0.8 },
+  durationPill: {
+    position: 'absolute',
+    right: spacing.sm + 4,
+    bottom: spacing.sm + 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+  durationText: { ...type.captionBold, fontSize: 12, color: colors.white, fontVariant: ['tabular-nums'] },
   card: { gap: spacing.sm },
   cardMeta: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
   cardDate: { ...type.caption, color: colors.muted },

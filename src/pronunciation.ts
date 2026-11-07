@@ -42,7 +42,7 @@ async function check(session: Session, onProgress?: ProgressListener): Promise<P
     const uri = recordingUri(session.audioFile);
     if (!uri) throw new Error('The recording is no longer on this device.');
     const [apiKey, settings] = await Promise.all([getNvidiaKey(), loadSettings()]);
-    if (!apiKey) throw new Error('No NVIDIA API key. Add one in Settings.');
+    if (!apiKey) throw new Error('The app has no access key. Add one in Settings.');
 
     const bytes = await new File(uri).bytes();
     const chunks = isWav(bytes) ? wavChunks(bytes) : [{ wavBytes: bytes, offsetSec: 0 }];

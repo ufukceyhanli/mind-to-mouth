@@ -11,6 +11,7 @@ import {
   Card,
   HeroCard,
   IconButton,
+  MicDisc,
   Muted,
   PageHeader,
   PillRow,
@@ -23,7 +24,7 @@ import {
   loadSessions,
   practisedToday,
 } from '../../src/storage';
-import { colors, radius, shadow, spacing, type } from '../../src/theme';
+import { colors, radius, spacing, type } from '../../src/theme';
 import type { Session } from '../../src/types';
 
 export default function HomeScreen() {
@@ -101,12 +102,7 @@ export default function HomeScreen() {
               </Text>
             </View>
           </View>
-          <View style={styles.wordCover}>
-            <Text style={styles.wordCoverLabel}>YOUR WORD</Text>
-            <Text style={styles.wordCoverMark}>?</Text>
-            <Ionicons name="mic" size={26} color={colors.accent} />
-            <Text style={styles.wordCoverCaption}>Mind to Mouth</Text>
-          </View>
+          <MicDisc size={116} style={styles.heroDisc} />
         </View>
       </HeroCard>
 
@@ -116,10 +112,10 @@ export default function HomeScreen() {
             One thing before you start
           </SectionTitle>
           <Muted style={{ marginBottom: spacing.md }}>
-            Your talks are transcribed and coached by models on build.nvidia.com, so the app
-            needs a free NVIDIA API key. It stays in your phone’s keychain.
+            Your talks are transcribed and coached by an AI service, so the app needs an access
+            key. It stays in your phone’s keychain.
           </Muted>
-          <Button title="Add API key" icon="key-outline" onPress={() => router.push('/settings')} />
+          <Button title="Add access key" icon="key-outline" onPress={() => router.push('/settings')} />
         </Card>
       )}
 
@@ -194,26 +190,13 @@ const styles = StyleSheet.create({
     height: 44,
   },
   streakText: { ...type.h3, color: colors.accent, fontVariant: ['tabular-nums'] },
-  heroRow: { flexDirection: 'row', gap: spacing.md, minHeight: 190 },
+  heroRow: { flexDirection: 'row', gap: spacing.md, minHeight: 170, alignItems: 'center' },
   heroText: { flex: 1, justifyContent: 'space-between' },
   heroTitle: { ...type.h2, fontSize: 28, lineHeight: 34, color: colors.white },
   heroSubtitle: { ...type.body, color: colors.heroMuted, marginTop: spacing.xs },
   heroFooter: { alignItems: 'flex-start', gap: spacing.md, marginTop: spacing.lg },
   heroLink: { ...type.h3, fontSize: 18, color: colors.white },
-  wordCover: {
-    width: 112,
-    backgroundColor: '#FBF2CF',
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.sm,
-    marginBottom: -spacing.lg - 10,
-    ...shadow,
-  },
-  wordCoverLabel: { ...type.captionBold, fontSize: 11, color: colors.text, letterSpacing: 1 },
-  wordCoverMark: { fontFamily: type.title.fontFamily, fontSize: 56, color: colors.accent },
-  wordCoverCaption: { ...type.caption, fontSize: 10, color: colors.muted },
+  heroDisc: { alignSelf: 'center' },
   setupCard: { borderWidth: 1.5, borderColor: colors.accentLight },
   carousel: { paddingHorizontal: spacing.md, gap: spacing.md },
   step: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },

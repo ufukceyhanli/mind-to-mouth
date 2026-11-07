@@ -80,51 +80,53 @@ export default function SettingsScreen() {
       >
         <PageHeader title="Settings" />
 
-        <View>
-          <SectionTitle>NVIDIA API</SectionTitle>
-          <Card style={{ gap: spacing.md }}>
-            <View>
-              <Text style={styles.label}>API key</Text>
-              <TextInput
-                value={apiKey}
-                onChangeText={setApiKey}
-                placeholder={hasBundledNvidiaKey ? 'Using the built-in key' : 'nvapi-…'}
-                placeholderTextColor={colors.muted}
-                autoCapitalize="none"
-                autoCorrect={false}
-                secureTextEntry={!reveal}
-                style={styles.input}
-              />
-              <Muted style={styles.hint}>
-                {hasBundledNvidiaKey
-                  ? 'This build ships with a key. Enter one here only to override it; clear the field to go back to the built-in key.'
-                  : 'Free at build.nvidia.com. Used for both transcription and coaching.'}{' '}
-                Stored in the device keychain and only ever sent to integrate.api.nvidia.com.
-              </Muted>
-            </View>
-            <Link onPress={() => setReveal((v) => !v)}>{reveal ? 'Hide key' : 'Show key'}</Link>
-          </Card>
-        </View>
+        {!hasBundledNvidiaKey && (
+          <View>
+            <SectionTitle>Access key</SectionTitle>
+            <Card style={{ gap: spacing.md }}>
+              <View>
+                <Text style={styles.label}>Key</Text>
+                <TextInput
+                  value={apiKey}
+                  onChangeText={setApiKey}
+                  placeholder="Paste your access key"
+                  placeholderTextColor={colors.muted}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  secureTextEntry={!reveal}
+                  style={styles.input}
+                />
+                <Muted style={styles.hint}>
+                  Used for transcription and coaching. Stored in the device keychain and only sent
+                  to the transcription service.
+                </Muted>
+              </View>
+              <Link onPress={() => setReveal((v) => !v)}>{reveal ? 'Hide key' : 'Show key'}</Link>
+            </Card>
+          </View>
+        )}
 
-        <View>
-          <SectionTitle>Models</SectionTitle>
-          <Card style={{ gap: spacing.md }}>
-            <ModelField
-              label="Speech to text"
-              value={settings.transcribeModel}
-              defaultValue={DEFAULT_SETTINGS.transcribeModel}
-              hint="Must accept audio input over chat completions. Nemotron 3 Nano Omni does; each chunk is under 30 seconds."
-              onChange={(transcribeModel) => setSettings((s) => ({ ...s, transcribeModel }))}
-            />
-            <ModelField
-              label="Coach"
-              value={settings.coachModel}
-              defaultValue={DEFAULT_SETTINGS.coachModel}
-              hint="Any text model on build.nvidia.com that can return JSON. Nemotron 3 Ultra is NVIDIA's most capable."
-              onChange={(coachModel) => setSettings((s) => ({ ...s, coachModel }))}
-            />
-          </Card>
-        </View>
+        {!hasBundledNvidiaKey && (
+          <View>
+            <SectionTitle>Models</SectionTitle>
+            <Card style={{ gap: spacing.md }}>
+              <ModelField
+                label="Speech to text"
+                value={settings.transcribeModel}
+                defaultValue={DEFAULT_SETTINGS.transcribeModel}
+                hint="Must accept audio input over chat completions; each chunk is under 30 seconds."
+                onChange={(transcribeModel) => setSettings((s) => ({ ...s, transcribeModel }))}
+              />
+              <ModelField
+                label="Coach"
+                value={settings.coachModel}
+                defaultValue={DEFAULT_SETTINGS.coachModel}
+                hint="Any text model that can return JSON."
+                onChange={(coachModel) => setSettings((s) => ({ ...s, coachModel }))}
+              />
+            </Card>
+          </View>
+        )}
 
         <View>
           <SectionTitle>Practice</SectionTitle>
@@ -183,7 +185,7 @@ export default function SettingsScreen() {
           <Card>
             <Muted>
               The delivery rubric runs on your phone: keeping going (20), pace (20), fluency (20),
-              vocabulary range (15), staying on topic (15) and flow (10). The coach model adds three
+              vocabulary range (15), staying on topic (15) and flow (10). The coach adds three
               content scores out of 10 and the final number is 60% rubric, 40% coach.
             </Muted>
           </Card>

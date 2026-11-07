@@ -80,22 +80,17 @@ export const shadow: ViewStyle = {
   elevation: 5,
 };
 
-/** Palette of "book cover" colours for talks; picked by word so it is stable. */
-export const coverColors = [
-  { bg: '#1F4D3A', fg: '#F6EFD9' }, // forest
-  { bg: '#1E2A44', fg: '#F2E7C9' }, // navy
-  { bg: '#B8231F', fg: '#FFF3E6' }, // red
-  { bg: '#D9A520', fg: '#1A1A1A' }, // mustard
-  { bg: '#D7E8EC', fg: '#1E2A44' }, // ice
-  { bg: '#3A6B5E', fg: '#F6EFD9' }, // teal
-  { bg: '#7A3E2E', fg: '#FBE7D6' }, // clay
-  { bg: '#F7EBB8', fg: '#3B2A14' }, // straw
-];
+/** Accent colours for talk tiles; picked by word so a talk always looks the same. */
+export const talkColors = ['#1F6F5B', '#2B4C8C', '#B8231F', '#B5771A', '#2F6F9F', '#7A3E2E', '#5B3F8C', '#C2521C'];
 
-export function coverColor(seed: string): { bg: string; fg: string } {
+export function hashString(seed: string): number {
   let hash = 0;
   for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
-  return coverColors[hash % coverColors.length];
+  return hash;
+}
+
+export function talkColor(seed: string): string {
+  return talkColors[hashString(seed) % talkColors.length];
 }
 
 export function scoreColor(score: number): string {

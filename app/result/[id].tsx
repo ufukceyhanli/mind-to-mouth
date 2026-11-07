@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PronunciationCard } from '../../src/components/PronunciationCard';
 import { RecordingPlayer } from '../../src/components/RecordingPlayer';
-import { Cover } from '../../src/components/SessionRow';
+import { TalkTile } from '../../src/components/SessionRow';
 import {
   Body,
   BottomActions,
@@ -72,10 +72,15 @@ export default function ResultScreen() {
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
-          <View style={styles.coverWrap}>
-            <Cover word={session.word} width={196} height={266} fontSize={34} caption="Mind to Mouth" />
+          <View style={styles.tileWrap}>
+            <TalkTile
+              seed={session.word}
+              height={168}
+              durationSec={session.durationSec}
+              showPlay={false}
+            />
             <View style={styles.scoreWrap}>
-              <ScoreBadge score={session.finalScore} size={92} />
+              <ScoreBadge score={session.finalScore} size={96} />
             </View>
           </View>
           <Text style={styles.word}>{session.word}</Text>
@@ -250,8 +255,8 @@ const styles = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center', gap: spacing.md },
   content: { padding: spacing.md, paddingBottom: spacing.lg, gap: spacing.lg },
   hero: { alignItems: 'center', gap: spacing.xs, paddingTop: spacing.sm },
-  coverWrap: { marginBottom: spacing.lg, paddingRight: spacing.lg },
-  scoreWrap: { position: 'absolute', right: -spacing.md, bottom: -spacing.lg },
+  tileWrap: { alignSelf: 'stretch', marginBottom: spacing.xl },
+  scoreWrap: { position: 'absolute', alignSelf: 'center', bottom: -spacing.xl + 4 },
   heading: { ...type.h2, color: colors.text },
   word: { ...type.title, color: colors.text, textTransform: 'capitalize', textAlign: 'center' },
   date: { ...type.body, fontSize: 18, color: colors.text, textAlign: 'center' },

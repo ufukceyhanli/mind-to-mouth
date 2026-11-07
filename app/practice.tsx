@@ -22,8 +22,7 @@ import {
   parseWav,
   splitAtQuietPoints,
 } from '../src/audio';
-import { Cover } from '../src/components/SessionRow';
-import { Badge, BottomActions, Button, Muted } from '../src/components/ui';
+import { Badge, BottomActions, Button, MicDisc, Muted } from '../src/components/ui';
 import { describeNvidiaError, getCoachFeedback, transcribeChunks } from '../src/nvidia';
 import { persistRecording } from '../src/recordings';
 import { blendScore, scoreTalk } from '../src/scoring';
@@ -147,7 +146,7 @@ export default function PracticeScreen() {
       try {
         const apiKey = apiKeyRef.current;
         if (!apiKey) {
-          throw new Error('No NVIDIA API key. Add one in Settings to get transcripts.');
+          throw new Error('The app has no access key. Add one in Settings to get transcripts.');
         }
 
         setStatusText('Preparing audio…');
@@ -170,7 +169,7 @@ export default function PracticeScreen() {
           model: currentSettings.transcribeModel,
           chunks,
           onProgress: (done, total) => setStatusText(`Transcribing… ${done}/${total}`),
-          onRetry: (attempt, max) => setStatusText(`NVIDIA is busy, retrying… (${attempt}/${max})`),
+          onRetry: (attempt, max) => setStatusText(`The service is busy, retrying… (${attempt}/${max})`),
         });
         if (text.length === 0) {
           throw new Error('No speech was recognised. Check the microphone and try again.');
@@ -353,7 +352,7 @@ export default function PracticeScreen() {
           </Badge>
         </View>
         <View style={styles.center}>
-          <Cover word={word} width={172} height={232} fontSize={30} caption="Mind to Mouth" />
+          <MicDisc size={160} />
           <Text style={styles.word}>{word}</Text>
           <Text style={styles.prepNumber}>{prepLeft}</Text>
           <Muted style={styles.centeredText}>

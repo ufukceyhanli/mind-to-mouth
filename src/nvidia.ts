@@ -127,26 +127,26 @@ export function describeNvidiaError(error: unknown): string {
     switch (error.status) {
       case 401:
       case 403:
-        return 'NVIDIA rejected the API key. Check it in Settings.';
+        return 'The access key was rejected. Check it in Settings.';
       case 402:
-        return 'Your NVIDIA API credits are used up.';
+        return 'The service credits are used up.';
       case 404:
-        return `Model not found on build.nvidia.com: ${error.message}`;
+        return `Model not found: ${error.message}`;
       case 413:
         return 'An audio chunk was too large for the API. Try a shorter talk.';
       case 429:
-        return 'NVIDIA rate limit reached. Wait a minute and retry.';
+        return 'Rate limit reached. Wait a minute and retry.';
       case 502:
       case 503:
       case 504:
-        return "NVIDIA's servers are busy right now. Wait a moment and retry.";
+        return 'The service is busy right now. Wait a moment and retry.';
       default:
-        return `NVIDIA API error ${error.status}: ${error.message}`;
+        return `Service error ${error.status}: ${error.message}`;
     }
   }
-  if (error instanceof TypeError) return 'Could not reach NVIDIA. Check your connection.';
+  if (error instanceof TypeError) return 'Could not reach the service. Check your connection.';
   if (error instanceof Error) return error.message;
-  return 'Unknown NVIDIA API error.';
+  return 'Unknown service error.';
 }
 
 // ---- Transcription ----------------------------------------------------------
