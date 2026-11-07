@@ -76,19 +76,21 @@ audio-capable or text model from the catalog without a code change.
 
 ```
 app/                 Expo Router screens
-  _layout.tsx        stack navigator
-  index.tsx          home: streak, start button, recent talks
+  _layout.tsx        root stack: loads fonts, hosts the tabs and the practice/result screens
+  (tabs)/_layout.tsx bottom tab bar: Today, Talks, Settings
+  (tabs)/index.tsx   home: streak, today's talk hero card, recent talks
   practice.tsx       word → countdown → recording → processing
   result/[id].tsx    score breakdown, coach notes, transcript
-  history.tsx        all talks (long-press to delete)
-  settings.tsx       API key, model ids, timing options
+  (tabs)/history.tsx all talks (long-press to delete)
+  (tabs)/settings.tsx API key, model ids, timing options
 src/
   words.ts           prompt bank + picker
   audio.ts           WAV parsing, pause analysis, quiet-point chunking, ADPCM encoder
   nvidia.ts          chat-completions client: transcription + coaching
   scoring.ts         rubric and score blending
   storage.ts         AsyncStorage sessions/settings, SecureStore key, streaks
-  components/        small UI kit
+  theme.ts           design tokens: colours, Lato type scale, radii, shadow
+  components/        small UI kit (buttons, cards, chips, pill rows, covers)
 ```
 
 ## Development

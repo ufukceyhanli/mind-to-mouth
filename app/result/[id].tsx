@@ -1,21 +1,26 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PronunciationCard } from '../../src/components/PronunciationCard';
 import { RecordingPlayer } from '../../src/components/RecordingPlayer';
+import { Cover } from '../../src/components/SessionRow';
 import {
+  Body,
+  BottomActions,
   Button,
   Card,
   Muted,
+  PillRow,
   ProgressBar,
   ScoreBadge,
+  SectionHeader,
   SectionTitle,
-  Stat,
 } from '../../src/components/ui';
 import { getSession } from '../../src/storage';
-import { colors, formatClock, scoreColor, spacing } from '../../src/theme';
+import { colors, formatClock, scoreColor, spacing, type } from '../../src/theme';
 import type { Session } from '../../src/types';
 
 export default function ResultScreen() {
@@ -50,120 +55,159 @@ export default function ResultScreen() {
     return (
       <View style={[styles.screen, styles.center]}>
         <Text style={styles.heading}>Talk not found</Text>
-        <Button title="Home" variant="secondary" onPress={() => router.replace('/')} />
+        <Button title="Home" variant="secondary" icon="home-outline" onPress={() => router.replace('/')} />
       </View>
     );
   }
 
   const { score, coach } = session;
   const coachTotal = coach ? coach.coherence + coach.structure + coach.relevance : null;
+  const date = new Date(session.createdAt).toLocaleDateString(undefined, {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
 
   return (
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + spacing.xl }]}
-    >
-      <View style={styles.hero}>
-        <Muted>You talked about</Muted>
-        <Text style={styles.word}>{session.word}</Text>
-        <ScoreBadge score={session.finalScore} />
+    <View style={styles.screen}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.hero}>
+          <View style={styles.coverWrap}>
+            <Cover word={session.word} width={196} height={266} fontSize={34} caption="Mind to Mouth" />
+            <View style={styles.scoreWrap}>
+              <ScoreBadge score={session.finalScore} size={92} />
+            </View>
+          </View>
+          <Text style={styles.word}>{session.word}</Text>
+          <Text style={styles.date}>
+            {date} · {score.stats.wordCount} words
+          </Text>
+          <Muted style={styles.kind}>Impromptu talk</Muted>
+        </View>
+
+        <PillRow
+          items={[
+            { icon: 'time-outline', label: formatClock(session.durationSec) },
+            { icon: 'speedometer-outline', label: `${score.stats.wordsPerMinute} wpm` },
+            { icon: 'chatbubble-ellipses-outline', label: `${score.stats.fillerCount} fillers` },
+          ]}
+        />
+
         {coach && (
-          <Text style={styles.summary}>“{coach.summary}”</Text>
+          <View>
+            <SectionTitle>How it went</SectionTitle>
+            <Text style={styles.summary}>{coach.summary}</Text>
+          </View>
         )}
-      </View>
 
-      <Card>
-        <View style={styles.statsRow}>
-          <Stat label="length" value={formatClock(session.durationSec)} />
-          <Stat label="words" value={String(score.stats.wordCount)} />
-          <Stat label="wpm" value={String(score.stats.wordsPerMinute)} />
-          <Stat label="fillers" value={String(score.stats.fillerCount)} />
-        </View>
-      </Card>
+        {session.audioFile && (
+          <View>
+            <SectionTitle>Listen back</SectionTitle>
+            <RecordingPlayer fileName={session.audioFile} durationSec={session.durationSec} />
+          </View>
+        )}
 
-      {session.audioFile && (
+        {session.pronunciation && session.pronunciation.status !== 'off' && (
+          <View>
+            <SectionTitle>Worth a listen</SectionTitle>
+            <PronunciationCard
+              session={session}
+              onReport={(pronunciation) => setSession((s) => (s ? { ...s, pronunciation } : s))}
+            />
+          </View>
+        )}
+
         <View>
-          <SectionTitle>Listen back</SectionTitle>
-          <RecordingPlayer fileName={session.audioFile} durationSec={session.durationSec} />
-        </View>
-      )}
-
-      {session.pronunciation && session.pronunciation.status !== 'off' && (
-        <View>
-          <SectionTitle>Worth a listen</SectionTitle>
-          <PronunciationCard
-            session={session}
-            onReport={(pronunciation) => setSession((s) => (s ? { ...s, pronunciation } : s))}
-          />
-        </View>
-      )}
-
-      <View>
-        <SectionTitle>
-          Delivery rubric · {score.total}/100{coach ? ' · 60% of final' : ''}
-        </SectionTitle>
-        <Card style={{ gap: spacing.md }}>
-          {score.components.map((c) => (
-            <View key={c.key}>
-              <View style={styles.componentHeader}>
-                <Text style={styles.componentLabel}>{c.label}</Text>
-                <Text style={styles.componentPoints}>
-                  {c.points}/{c.max}
-                </Text>
-              </View>
-              <ProgressBar value={c.points} max={c.max} color={scoreColor((c.points / c.max) * 100)} />
-              <Muted style={{ marginTop: 4, fontSize: 13 }}>{c.detail}</Muted>
-            </View>
-          ))}
-        </Card>
-      </View>
-
-      <View>
-        <SectionTitle>
-          Coach{coachTotal !== null ? ` · ${coachTotal}/30 · 40% of final` : ''}
-        </SectionTitle>
-        {coach ? (
+          <SectionTitle style={{ marginBottom: 0 }}>Delivery</SectionTitle>
+          <Muted style={styles.sectionMeta}>
+            {score.total}/100{coach ? ' · 60% of final' : ''}
+          </Muted>
           <Card style={{ gap: spacing.md }}>
-            <View style={styles.coachScores}>
-              <CoachScore label="Coherence" value={coach.coherence} />
-              <CoachScore label="Structure" value={coach.structure} />
-              <CoachScore label="On topic" value={coach.relevance} />
-            </View>
-            <FeedbackList title="What worked" items={coach.strengths} color={colors.success} />
-            <FeedbackList title="Try next time" items={coach.improvements} color={colors.warn} />
-            <View>
-              <Text style={styles.feedbackTitle}>Tomorrow’s drill</Text>
-              <Text style={styles.body}>{coach.nextDrill}</Text>
-            </View>
+            {score.components.map((c) => (
+              <View key={c.key}>
+                <View style={styles.componentHeader}>
+                  <Text style={styles.componentLabel}>{c.label}</Text>
+                  <Text style={styles.componentPoints}>
+                    {c.points}/{c.max}
+                  </Text>
+                </View>
+                <ProgressBar value={c.points} max={c.max} color={scoreColor((c.points / c.max) * 100)} />
+                <Muted style={styles.detail}>{c.detail}</Muted>
+              </View>
+            ))}
           </Card>
-        ) : (
-          <Card>
-            <Muted>
-              {session.coachError
-                ? `Coaching unavailable: ${session.coachError}`
-                : 'No coaching was recorded for this talk.'}
-            </Muted>
-          </Card>
-        )}
-      </View>
+        </View>
 
-      <View>
-        <Pressable onPress={() => setShowTranscript((v) => !v)} style={styles.transcriptToggle}>
-          <SectionTitle>Transcript</SectionTitle>
-          <Text style={styles.link}>{showTranscript ? 'Hide' : 'Show'}</Text>
-        </Pressable>
-        {showTranscript && (
-          <Card>
-            <Text style={styles.transcript}>{session.transcript}</Text>
-          </Card>
-        )}
-      </View>
+        <View>
+          <SectionTitle style={{ marginBottom: 0 }}>Coach</SectionTitle>
+          <Muted style={styles.sectionMeta}>
+            {coachTotal !== null ? `${coachTotal}/30 · 40% of final` : 'Content scores'}
+          </Muted>
+          {coach ? (
+            <Card style={{ gap: spacing.lg }}>
+              <View style={styles.coachScores}>
+                <CoachScore label="Coherence" value={coach.coherence} />
+                <CoachScore label="Structure" value={coach.structure} />
+                <CoachScore label="On topic" value={coach.relevance} />
+              </View>
+              <FeedbackList
+                title="What worked"
+                icon="checkmark-circle"
+                items={coach.strengths}
+                color={colors.success}
+              />
+              <FeedbackList
+                title="Try next time"
+                icon="arrow-up-circle"
+                items={coach.improvements}
+                color={colors.accent}
+              />
+              <View>
+                <Text style={styles.feedbackTitle}>Tomorrow’s drill</Text>
+                <Body>{coach.nextDrill}</Body>
+              </View>
+            </Card>
+          ) : (
+            <Card>
+              <Muted>
+                {session.coachError
+                  ? `Coaching unavailable: ${session.coachError}`
+                  : 'No coaching was recorded for this talk.'}
+              </Muted>
+            </Card>
+          )}
+        </View>
 
-      <View style={styles.actions}>
-        <Button title="Practise again" onPress={() => router.replace('/practice')} />
-        <Button title="Home" variant="secondary" onPress={() => router.replace('/')} />
-      </View>
-    </ScrollView>
+        <View>
+          <SectionHeader
+            title="Transcript"
+            actionLabel={showTranscript ? 'Hide' : 'Show'}
+            onAction={() => setShowTranscript((v) => !v)}
+          />
+          {showTranscript && (
+            <Card>
+              <Text style={styles.transcript}>{session.transcript}</Text>
+            </Card>
+          )}
+        </View>
+      </ScrollView>
+
+      <BottomActions style={[styles.footer, { paddingBottom: insets.bottom + spacing.sm }]}>
+        <Button
+          title="Practise again"
+          icon="mic"
+          onPress={() => router.replace('/practice')}
+          style={styles.half}
+        />
+        <Button
+          title="Home"
+          variant="secondary"
+          icon="home-outline"
+          onPress={() => router.replace('/')}
+          style={styles.half}
+        />
+      </BottomActions>
+    </View>
   );
 }
 
@@ -171,17 +215,19 @@ function CoachScore({ label, value }: { label: string; value: number }) {
   return (
     <View style={styles.coachScore}>
       <Text style={[styles.coachScoreValue, { color: scoreColor(value * 10) }]}>{value}</Text>
-      <Muted style={{ fontSize: 12 }}>{label}</Muted>
+      <Muted style={styles.coachScoreLabel}>{label}</Muted>
     </View>
   );
 }
 
 function FeedbackList({
   title,
+  icon,
   items,
   color,
 }: {
   title: string;
+  icon: 'checkmark-circle' | 'arrow-up-circle';
   items: string[];
   color: string;
 }) {
@@ -191,8 +237,8 @@ function FeedbackList({
       <Text style={styles.feedbackTitle}>{title}</Text>
       {items.map((item, i) => (
         <View key={i} style={styles.bulletRow}>
-          <View style={[styles.bullet, { backgroundColor: color }]} />
-          <Text style={[styles.body, { flex: 1 }]}>{item}</Text>
+          <Ionicons name={icon} size={20} color={color} style={{ marginTop: 2 }} />
+          <Body style={{ flex: 1 }}>{item}</Body>
         </View>
       ))}
     </View>
@@ -202,38 +248,31 @@ function FeedbackList({
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   center: { alignItems: 'center', justifyContent: 'center', gap: spacing.md },
-  content: { padding: spacing.md, gap: spacing.md },
-  hero: { alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.md },
-  heading: { color: colors.text, fontSize: 22, fontWeight: '700' },
-  word: {
-    color: colors.text,
-    fontSize: 34,
-    fontWeight: '800',
-    textTransform: 'capitalize',
-    marginBottom: spacing.sm,
-  },
-  summary: {
-    color: colors.text,
-    fontSize: 16,
-    lineHeight: 23,
-    fontStyle: 'italic',
-    textAlign: 'center',
-    marginTop: spacing.sm,
-    paddingHorizontal: spacing.md,
-  },
-  statsRow: { flexDirection: 'row' },
-  componentHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  componentLabel: { color: colors.text, fontSize: 15, fontWeight: '600' },
-  componentPoints: { color: colors.muted, fontSize: 14, fontVariant: ['tabular-nums'] },
+  content: { padding: spacing.md, paddingBottom: spacing.lg, gap: spacing.lg },
+  hero: { alignItems: 'center', gap: spacing.xs, paddingTop: spacing.sm },
+  coverWrap: { marginBottom: spacing.lg, paddingRight: spacing.lg },
+  scoreWrap: { position: 'absolute', right: -spacing.md, bottom: -spacing.lg },
+  heading: { ...type.h2, color: colors.text },
+  word: { ...type.title, color: colors.text, textTransform: 'capitalize', textAlign: 'center' },
+  date: { ...type.body, fontSize: 18, color: colors.text, textAlign: 'center' },
+  kind: { ...type.captionBold, fontSize: 15, color: colors.muted },
+  summary: { ...type.bodyLarge, color: colors.text },
+  sectionMeta: { ...type.caption, fontSize: 14, marginBottom: spacing.sm },
+  componentHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  componentLabel: { ...type.label, color: colors.text },
+  componentPoints: { ...type.label, color: colors.muted, fontVariant: ['tabular-nums'] },
+  detail: { ...type.caption, marginTop: 6 },
   coachScores: { flexDirection: 'row', justifyContent: 'space-around' },
   coachScore: { alignItems: 'center' },
-  coachScoreValue: { fontSize: 28, fontWeight: '800' },
-  feedbackTitle: { color: colors.text, fontSize: 15, fontWeight: '700', marginBottom: 6 },
-  body: { color: colors.text, fontSize: 15, lineHeight: 22 },
-  bulletRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: 6 },
-  bullet: { width: 6, height: 6, borderRadius: 3, marginTop: 8 },
-  transcriptToggle: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  link: { color: colors.accent, fontWeight: '600', marginBottom: spacing.sm },
-  transcript: { color: colors.text, fontSize: 15, lineHeight: 23 },
-  actions: { gap: spacing.sm, marginTop: spacing.sm },
+  coachScoreValue: { fontFamily: type.title.fontFamily, fontSize: 30, lineHeight: 36 },
+  coachScoreLabel: { ...type.caption },
+  feedbackTitle: { ...type.h3, color: colors.text, marginBottom: spacing.sm },
+  bulletRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm },
+  transcript: { ...type.body, fontSize: 17, lineHeight: 27, color: colors.text },
+  footer: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
+    backgroundColor: colors.bg,
+  },
+  half: { flex: 1 },
 });

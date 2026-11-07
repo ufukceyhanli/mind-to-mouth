@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Switch,
@@ -12,16 +11,16 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button, Card, Muted, SectionTitle } from '../src/components/ui';
+import { Button, Card, Chip, Link, Muted, PageHeader, SectionTitle } from '../../src/components/ui';
 import {
   getStoredNvidiaKey,
   hasBundledNvidiaKey,
   loadSettings,
   saveSettings,
   setNvidiaKey,
-} from '../src/storage';
-import { colors, radius, spacing } from '../src/theme';
-import { DEFAULT_SETTINGS, type Settings } from '../src/types';
+} from '../../src/storage';
+import { colors, radius, spacing, type } from '../../src/theme';
+import { DEFAULT_SETTINGS, type Settings } from '../../src/types';
 
 const PREP_OPTIONS = [5, 10, 20, 30];
 const MIN_OPTIONS = [60, 90, 120, 180];
@@ -73,9 +72,14 @@ export default function SettingsScreen() {
       keyboardVerticalOffset={100}
     >
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + spacing.xl }]}
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: insets.top + spacing.lg, paddingBottom: spacing.xl },
+        ]}
         keyboardShouldPersistTaps="handled"
       >
+        <PageHeader title="Settings" />
+
         <View>
           <SectionTitle>NVIDIA API</SectionTitle>
           <Card style={{ gap: spacing.md }}>
@@ -98,9 +102,7 @@ export default function SettingsScreen() {
                 Stored in the device keychain and only ever sent to integrate.api.nvidia.com.
               </Muted>
             </View>
-            <Pressable onPress={() => setReveal((v) => !v)}>
-              <Text style={styles.link}>{reveal ? 'Hide key' : 'Show key'}</Text>
-            </Pressable>
+            <Link onPress={() => setReveal((v) => !v)}>{reveal ? 'Hide key' : 'Show key'}</Link>
           </Card>
         </View>
 
@@ -126,7 +128,7 @@ export default function SettingsScreen() {
 
         <View>
           <SectionTitle>Practice</SectionTitle>
-          <Card style={{ gap: spacing.md }}>
+          <Card style={{ gap: spacing.lg }}>
             <OptionRow
               label="Thinking time"
               options={PREP_OPTIONS}
@@ -156,8 +158,8 @@ export default function SettingsScreen() {
                   onValueChange={(checkPronunciation) =>
                     setSettings((s) => ({ ...s, checkPronunciation }))
                   }
-                  trackColor={{ true: colors.accent, false: colors.border }}
-                  thumbColor={colors.text}
+                  trackColor={{ true: colors.accent, false: colors.surfaceAlt }}
+                  thumbColor={colors.white}
                 />
               </View>
               <Muted style={styles.hint}>
@@ -169,7 +171,12 @@ export default function SettingsScreen() {
           </Card>
         </View>
 
-        <Button title={justSaved ? 'Saved' : 'Save'} onPress={() => void save()} loading={saving} />
+        <Button
+          title={justSaved ? 'Saved' : 'Save'}
+          icon={justSaved ? 'checkmark' : undefined}
+          onPress={() => void save()}
+          loading={saving}
+        />
 
         <View>
           <SectionTitle>How scoring works</SectionTitle>
@@ -203,11 +210,7 @@ function ModelField({
     <View>
       <View style={styles.labelRow}>
         <Text style={styles.label}>{label}</Text>
-        {value !== defaultValue && (
-          <Pressable onPress={() => onChange(defaultValue)}>
-            <Text style={styles.link}>Reset</Text>
-          </Pressable>
-        )}
+        {value !== defaultValue && <Link onPress={() => onChange(defaultValue)}>Reset</Link>}
       </View>
       <TextInput
         value={value}
@@ -239,23 +242,15 @@ function OptionRow({
   return (
     <View>
       <Text style={styles.label}>{label}</Text>
-      <View style={styles.pills}>
-        {options.map((opt) => {
-          const selected = opt === value;
-          return (
-            <Pressable
-              key={opt}
-              accessibilityRole="button"
-              accessibilityState={{ selected }}
-              onPress={() => onChange(opt)}
-              style={[styles.pill, selected && styles.pillSelected]}
-            >
-              <Text style={[styles.pillText, selected && styles.pillTextSelected]}>
-                {format(opt)}
-              </Text>
-            </Pressable>
-          );
-        })}
+      <View style={styles.chips}>
+        {options.map((opt) => (
+          <Chip
+            key={opt}
+            label={format(opt)}
+            selected={opt === value}
+            onPress={() => onChange(opt)}
+          />
+        ))}
       </View>
     </View>
   );
@@ -263,32 +258,20 @@ function OptionRow({
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: spacing.md, gap: spacing.lg },
-  label: { color: colors.text, fontSize: 15, fontWeight: '600', marginBottom: spacing.sm },
+  content: { paddingHorizontal: spacing.md, gap: spacing.lg },
+  label: { ...type.label, color: colors.text, marginBottom: spacing.sm },
   labelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   input: {
-    backgroundColor: colors.cardAlt,
-    borderRadius: radius.sm,
+    ...type.body,
+    backgroundColor: colors.bg,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
     color: colors.text,
     paddingHorizontal: spacing.md,
-    paddingVertical: 12,
-    fontSize: 15,
+    paddingVertical: 14,
   },
-  hint: { fontSize: 13, marginTop: 6 },
-  link: { color: colors.accent, fontWeight: '600' },
-  pills: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  pill: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: 8,
-    borderRadius: radius.pill,
-    backgroundColor: colors.cardAlt,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  pillSelected: { backgroundColor: colors.accent, borderColor: colors.accent },
-  pillText: { color: colors.text, fontSize: 14, fontWeight: '600' },
-  pillTextSelected: { color: colors.bg },
+  hint: { ...type.caption, marginTop: 8 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
 });

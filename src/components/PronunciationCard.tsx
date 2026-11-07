@@ -1,13 +1,13 @@
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import * as Speech from 'expo-speech';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { runPronunciationCheck } from '../pronunciation';
 import { recordingUri } from '../recordings';
-import { colors, radius, spacing } from '../theme';
+import { colors, spacing, type } from '../theme';
 import type { PronunciationIssue, PronunciationReport, Session } from '../types';
-import { Button, Card, Muted } from './ui';
+import { Button, Card, Chip, Muted } from './ui';
 
 /** How much of the saved talk to play around a flagged word, in seconds. */
 const SNIPPET_BEFORE = 1.2;
@@ -152,7 +152,7 @@ function IssueList({
 
   return (
     <Card style={{ gap: spacing.md }}>
-      <Muted style={{ fontSize: 13 }}>
+      <Muted style={type.caption}>
         These are suggestions from the model, not a measurement. Tap to compare.
       </Muted>
       {issues.map((issue, index) => {
@@ -161,19 +161,21 @@ function IssueList({
           <View key={`${issue.word}-${index}`} style={styles.issue}>
             <Text style={styles.word}>{issue.word}</Text>
             {issue.heard.length > 0 && issue.heard.toLowerCase() !== issue.word && (
-              <Muted style={{ fontSize: 13 }}>Sounded like “{issue.heard}”</Muted>
+              <Muted style={type.caption}>Sounded like “{issue.heard}”</Muted>
             )}
             {issue.tip.length > 0 && <Text style={styles.tip}>{issue.tip}</Text>}
             <View style={styles.buttons}>
-              <PlayChip
+              <Chip
                 label={speakingIndex === index ? 'Speaking…' : 'Hear it'}
-                active={speakingIndex === index}
+                icon={speakingIndex === index ? 'stop' : 'volume-high-outline'}
+                selected={speakingIndex === index}
                 onPress={() => void hearCorrect(index, issue.word)}
               />
               {canHearYours && (
-                <PlayChip
+                <Chip
                   label={playingIndex === index ? 'Stop' : 'Hear yours'}
-                  active={playingIndex === index}
+                  icon={playingIndex === index ? 'stop' : 'play'}
+                  selected={playingIndex === index}
                   onPress={() => void hearYours(index, issue.atSec as number)}
                 />
               )}
@@ -185,49 +187,15 @@ function IssueList({
   );
 }
 
-function PlayChip({
-  label,
-  active,
-  onPress,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      style={({ pressed }) => [styles.chip, active && styles.chipActive, pressed && { opacity: 0.8 }]}
-    >
-      <Text style={[styles.chipText, active && styles.chipTextActive]}>
-        {active ? '■ ' : '▶ '}
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
   pendingRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   issue: {
     gap: spacing.xs,
-    paddingTop: spacing.sm,
+    paddingTop: spacing.md,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
-  word: { color: colors.text, fontSize: 18, fontWeight: '700', textTransform: 'capitalize' },
-  tip: { color: colors.text, fontSize: 15, lineHeight: 21 },
-  buttons: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
-  chip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: 8,
-    borderRadius: radius.pill,
-    backgroundColor: colors.cardAlt,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  chipActive: { backgroundColor: colors.accentSoft, borderColor: colors.accent },
-  chipText: { color: colors.text, fontSize: 14, fontWeight: '600' },
-  chipTextActive: { color: colors.accent },
+  word: { ...type.h3, color: colors.text, textTransform: 'capitalize' },
+  tip: { ...type.body, color: colors.text },
+  buttons: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
 });
