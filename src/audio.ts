@@ -166,6 +166,71 @@ export function analyzePauses(pcm: PcmAudio, frameMs = 50): PauseStats {
   };
 }
 
+// ---- Volume -----------------------------------------------------------------
+
+/**
+ * Loudness is reported on a 0–10 scale that coaches use: 0 is barely audible
+ * (-50 dBFS), 10 is shouting into the phone (-10 dBFS), and a well-projected
+ * speaking voice sits around 7. Four decibels per step.
+ */
+const LEVEL_FLOOR_DBFS = -50;
+const LEVEL_DB_PER_STEP = 4;
+
+export function dbfsToLevel(db: number): number {
+  return Math.max(0, Math.min(10, (db - LEVEL_FLOOR_DBFS) / LEVEL_DB_PER_STEP));
+}
+
+export type VolumeStats = {
+  /** Level most of the talk was spoken at: the median of the speaking windows. */
+  typicalLevel: number;
+  /** Quietest and loudest stretches (10th and 90th percentile of windows). */
+  lowLevel: number;
+  highLevel: number;
+  /** Median loudness of speech in dBFS, for reference. */
+  typicalDbfs: number;
+  /** Number of windows that contained enough speech to measure. */
+  windows: number;
+};
+
+/**
+ * Measures how loudly the speaker talked over time. The talk is cut into
+ * short windows; each window with enough speech in it gets the median
+ * loudness of its speech frames, so pauses do not read as "quiet". Returns
+ * null when there is too little speech to say anything.
+ */
+export function measureVolume(pcm: PcmAudio, frameMs = 50, windowSec = 2): VolumeStats | null {
+  const rms = frameRms(pcm, frameMs);
+  if (rms.length === 0) return null;
+  const threshold = silenceThreshold(rms);
+  const framesPerWindow = Math.max(1, Math.round((windowSec * 1000) / frameMs));
+  const toDb = (x: number) => 20 * Math.log10(Math.max(x, 1e-6));
+  const median = (xs: number[]) => {
+    const sorted = [...xs].sort((a, b) => a - b);
+    return sorted[Math.floor((sorted.length - 1) / 2)];
+  };
+
+  const windowDb: number[] = [];
+  for (let start = 0; start < rms.length; start += framesPerWindow) {
+    const speech: number[] = [];
+    const end = Math.min(rms.length, start + framesPerWindow);
+    for (let i = start; i < end; i += 1) if (rms[i] >= threshold) speech.push(toDb(rms[i]));
+    // Windows that are mostly silence say nothing about speaking volume.
+    if (speech.length >= (end - start) * 0.3) windowDb.push(median(speech));
+  }
+  if (windowDb.length < 5) return null;
+
+  const sorted = [...windowDb].sort((a, b) => a - b);
+  const at = (p: number) => sorted[Math.min(sorted.length - 1, Math.floor(p * (sorted.length - 1)))];
+  const typicalDbfs = at(0.5);
+  return {
+    typicalLevel: Math.round(dbfsToLevel(typicalDbfs) * 10) / 10,
+    lowLevel: Math.round(dbfsToLevel(at(0.1)) * 10) / 10,
+    highLevel: Math.round(dbfsToLevel(at(0.9)) * 10) / 10,
+    typicalDbfs: Math.round(typicalDbfs * 10) / 10,
+    windows: windowDb.length,
+  };
+}
+
 /**
  * Seconds of actual speech in each chunk, judged against the silence
  * threshold of the whole talk (a per-chunk threshold misjudges short or

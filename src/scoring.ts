@@ -8,8 +8,8 @@ import type {
 
 /**
  * Deterministic, on-device rubric. 100 points total:
- *   duration 15 · pace 15 · rate variation 10 · fluency 20 · vocabulary 15 ·
- *   relevance 15 · flow 10
+ *   duration 15 · pace 15 · rate variation 10 · volume 10 · fluency 15 ·
+ *   vocabulary 10 · relevance 15 · flow 10
  * Every component explains itself so the user can see exactly what moved.
  */
 
@@ -167,27 +167,62 @@ export function scoreTalk(params: {
     detail: varietyDetail,
   });
 
-  // Fluency (20): ≤1 filler per 100 words is clean; ≥8 per 100 is zero.
+  // Volume (10): sit around 7 on the 0-10 scale most of the time, so there is
+  // room to drop to 4 for intimacy and push to 9 for emphasis, and use it.
+  const volume = transcription.volume;
+  let volumeScore: number;
+  let volumeDetail: string;
+  if (!volume) {
+    volumeScore = wordCount > 0 ? 0.7 : 0;
+    volumeDetail = 'Not enough audio data to measure volume.';
+  } else {
+    const { typicalLevel, lowLevel, highLevel } = volume;
+    // Level: full marks between 6.5 and 7.5; zero at 4.5 (quiet) and 9.5 (shouting).
+    const levelScore =
+      typicalLevel < 6.5 ? ramp(typicalLevel, 4.5, 6.5) : 1 - ramp(typicalLevel, 7.5, 9.5);
+    // Dynamics: a spread of two levels (8 dB) between quiet and loud stretches is lively.
+    const spread = highLevel - lowLevel;
+    const dynamicsScore = ramp(spread, 0.5, 2);
+    volumeScore = 0.6 * levelScore + 0.4 * dynamicsScore;
+    const where = `Volume sat around ${typicalLevel.toFixed(1)}/10 most of the time (${lowLevel.toFixed(1)}–${highLevel.toFixed(1)}).`;
+    volumeDetail =
+      typicalLevel < 6.5
+        ? `${where} Project more: aim for 7 so you can drop to 4 and push to 9.`
+        : typicalLevel > 7.5
+          ? `${where} A touch loud throughout. Settle at 7 and save 9 for key moments.`
+          : spread < 1
+            ? `${where} Good level. Now vary it: down to 4 for intimacy, up to 9 for emphasis.`
+            : `${where} Good level and good dynamics.`;
+  }
+  components.push({
+    key: 'volume',
+    label: 'Volume',
+    points: Math.round(10 * volumeScore),
+    max: 10,
+    detail: volumeDetail,
+  });
+
+  // Fluency (15): ≤1 filler per 100 words is clean; ≥8 per 100 is zero.
   const fluencyScore = wordCount === 0 ? 0 : 1 - ramp(fillersPer100, 1, 8);
   components.push({
     key: 'fluency',
     label: 'Fluency',
-    points: Math.round(20 * fluencyScore),
-    max: 20,
+    points: Math.round(15 * fluencyScore),
+    max: 15,
     detail:
       fillerCount === 0
         ? 'No filler words detected.'
         : `${fillerCount} filler word${fillerCount === 1 ? '' : 's'} (${fillersPer100.toFixed(1)} per 100 words).`,
   });
 
-  // Vocabulary (15): root type-token ratio, ~0.55 counts as rich for a 2-min talk.
+  // Vocabulary (10): root type-token ratio, ~0.55 counts as rich for a 2-min talk.
   const rootTtr = contentTokens.length > 0 ? uniqueWords / Math.sqrt(contentTokens.length) : 0;
   const vocabScore = ramp(rootTtr, 3.5, 8);
   components.push({
     key: 'vocabulary',
     label: 'Vocabulary range',
-    points: Math.round(15 * vocabScore),
-    max: 15,
+    points: Math.round(10 * vocabScore),
+    max: 10,
     detail: `${uniqueWords} distinct content words out of ${contentTokens.length}.`,
   });
 
@@ -242,6 +277,8 @@ export function scoreTalk(params: {
       topicMentions,
       longestPauseSec: pause,
       paceRange: variety ? [variety.min, variety.max] : null,
+      volumeLevel: volume ? volume.typicalLevel : null,
+      volumeRange: volume ? [volume.lowLevel, volume.highLevel] : null,
     },
   };
 }

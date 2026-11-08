@@ -58,8 +58,9 @@ The on-device rubric is deterministic and explains every point:
 | Kept talking | 15 | Reaching the minimum length |
 | Pace | 15 | Words per minute, sweet spot 120–160 |
 | Rate variation | 10 | How much the speaking rate (words/min while talking, pauses excluded) changes across the talk |
-| Fluency | 20 | Filler words per 100 words (um, uh, like, you know, …) |
-| Vocabulary range | 15 | Distinct content words relative to length |
+| Volume | 10 | Speaking level on a 0–10 scale (7 is the target most of the time) and how much it varies |
+| Fluency | 15 | Filler words per 100 words (um, uh, like, you know, …) |
+| Vocabulary range | 10 | Distinct content words relative to length |
 | On topic | 15 | How often the prompt word (or a form of it) came up |
 | Flow | 10 | Longest silence, measured from the audio |
 

@@ -448,6 +448,9 @@ export async function getCoachFeedback(params: {
       `${rubric.stats.fillerCount} filler words, prompt word used ${rubric.stats.topicMentions} times.` +
       (rubric.stats.paceRange
         ? ` Pace ranged from ${rubric.stats.paceRange[0]} to ${rubric.stats.paceRange[1]} words/min across the talk.`
+        : '') +
+      (rubric.stats.volumeLevel !== null && rubric.stats.volumeRange
+        ? ` Volume sat around ${rubric.stats.volumeLevel}/10 (range ${rubric.stats.volumeRange[0]}–${rubric.stats.volumeRange[1]}; 7 is the target speaking level).`
         : ''),
     '',
     '<transcript>',

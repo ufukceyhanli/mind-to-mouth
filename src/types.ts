@@ -1,3 +1,5 @@
+import type { VolumeStats } from './audio';
+
 /** One transcribed audio chunk: how many words were said, over how long. */
 export type SpeechSegment = {
   words: number;
@@ -15,10 +17,12 @@ export type Transcription = {
   chunkCount: number;
   /** Per-chunk word counts and durations, in order; empty when unknown. */
   segments: SpeechSegment[];
+  /** Loudness over the talk, measured from the audio; null when unknown. */
+  volume: VolumeStats | null;
 };
 
 export type ScoreComponent = {
-  key: 'duration' | 'pace' | 'variety' | 'fluency' | 'vocabulary' | 'relevance' | 'flow';
+  key: 'duration' | 'pace' | 'variety' | 'volume' | 'fluency' | 'vocabulary' | 'relevance' | 'flow';
   label: string;
   points: number;
   max: number;
@@ -38,6 +42,10 @@ export type ScoreBreakdown = {
     longestPauseSec: number | null;
     /** Slowest and fastest speaking rate (words/min while talking), or null when not measured. */
     paceRange: [number, number] | null;
+    /** Typical speaking level on the 0–10 volume scale, or null when not measured. */
+    volumeLevel: number | null;
+    /** Quietest and loudest stretches on the same scale, or null when not measured. */
+    volumeRange: [number, number] | null;
   };
 };
 

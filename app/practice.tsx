@@ -20,8 +20,10 @@ import {
   chunksForUpload,
   encodeImaAdpcmWav,
   isWav,
+  measureVolume,
   parseWav,
   speechSecondsByChunk,
+  type VolumeStats,
 } from '../src/audio';
 import { Badge, BottomActions, Button, MicDisc, Muted } from '../src/components/ui';
 import {
@@ -163,9 +165,11 @@ export default function PracticeScreen() {
         let chunkSeconds: number[] = [];
         let chunkSpeechSeconds: number[] = [];
         let longestPauseSec: number | null = null;
+        let volume: VolumeStats | null = null;
         if (isWav(bytes)) {
           const pcm = parseWav(bytes);
           longestPauseSec = analyzePauses(pcm).longestPauseSec;
+          volume = measureVolume(pcm);
           const pcmChunks = chunksForUpload(pcm, MAX_INLINE_BASE64_CHARS);
           chunks = pcmChunks.map((c) => encodeImaAdpcmWav(c));
           chunkSeconds = pcmChunks.map((c) => c.samples.length / pcm.sampleRate);
@@ -197,6 +201,7 @@ export default function PracticeScreen() {
           longestPauseSec,
           chunkCount: chunks.length,
           segments,
+          volume,
         };
 
         setStatusText('Scoring…');
