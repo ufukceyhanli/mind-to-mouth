@@ -1,5 +1,8 @@
-import { useEffect, useState } from 'react';
+import Constants from 'expo-constants';
+import * as Linking from 'expo-linking';
+import { useCallback, useEffect, useState } from 'react';
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -10,17 +13,26 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from 'expo-router';
 
+import { DataSharingNotice } from '../../src/components/DataSharingNotice';
 import { Button, Card, Chip, Link, Muted, PageHeader, SectionTitle } from '../../src/components/ui';
+import { PRIVACY_POLICY_URL, SUPPORT_URL } from '../../src/links';
 import {
+  deleteAllSessions,
+  getDataSharingConsent,
   getStoredNvidiaKey,
   hasBundledNvidiaKey,
+  loadSessions,
   loadSettings,
   saveSettings,
+  setDataSharingConsent,
   setNvidiaKey,
 } from '../../src/storage';
 import { colors, radius, spacing, type } from '../../src/theme';
 import { DEFAULT_SETTINGS, type Settings } from '../../src/types';
+
+const appVersion = Constants.expoConfig?.version ?? '1.0.0';
 
 const PREP_OPTIONS = [5, 10, 20, 30];
 const MIN_OPTIONS = [60, 90, 120, 180];
@@ -33,6 +45,60 @@ export default function SettingsScreen() {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
+  const [consentDate, setConsentDate] = useState<string | null>(null);
+  const [talkCount, setTalkCount] = useState(0);
+
+  // Consent and the talk count can change elsewhere (first practice, deleting
+  // from Talks), so they reload every time the tab is shown.
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      Promise.all([getDataSharingConsent(), loadSessions()]).then(([consent, sessions]) => {
+        if (cancelled) return;
+        setConsentDate(consent);
+        setTalkCount(sessions.length);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }, []),
+  );
+
+  const withdrawConsent = () => {
+    Alert.alert(
+      'Stop sending recordings?',
+      'You will be asked again before your next talk. Talks cannot be scored without it.',
+      [
+        { text: 'Keep sharing', style: 'cancel' },
+        {
+          text: 'Withdraw',
+          style: 'destructive',
+          onPress: async () => {
+            await setDataSharingConsent(false);
+            setConsentDate(null);
+          },
+        },
+      ],
+    );
+  };
+
+  const deleteEverything = () => {
+    Alert.alert(
+      'Delete all talks?',
+      `${talkCount} talk${talkCount === 1 ? '' : 's'}, with every recording, transcript and score, will be removed from this phone. This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete all',
+          style: 'destructive',
+          onPress: async () => {
+            await deleteAllSessions();
+            setTalkCount(0);
+          },
+        },
+      ],
+    );
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -179,6 +245,42 @@ export default function SettingsScreen() {
           onPress={() => void save()}
           loading={saving}
         />
+
+        <View>
+          <SectionTitle>Privacy</SectionTitle>
+          <Card style={{ gap: spacing.lg }}>
+            <DataSharingNotice />
+            <View style={styles.switchRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.label, { marginBottom: 0 }]}>Sending recordings</Text>
+                <Muted style={styles.hint}>
+                  {consentDate
+                    ? `Agreed on ${new Date(consentDate).toLocaleDateString()}.`
+                    : 'Not agreed yet. You will be asked before your next talk.'}
+                </Muted>
+              </View>
+              {consentDate && <Link onPress={withdrawConsent}>Withdraw</Link>}
+            </View>
+            <Button
+              title={talkCount === 0 ? 'No talks to delete' : 'Delete all talks and recordings'}
+              variant="danger"
+              icon="trash-outline"
+              disabled={talkCount === 0}
+              onPress={deleteEverything}
+            />
+          </Card>
+        </View>
+
+        <View>
+          <SectionTitle>About</SectionTitle>
+          <Card style={{ gap: spacing.md }}>
+            <Link onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)}>Privacy policy</Link>
+            <Link onPress={() => void Linking.openURL(SUPPORT_URL)}>Contact and report a problem</Link>
+            <Muted style={styles.hint}>
+              Version {appVersion}. Feedback from the coach is AI-generated and can be wrong.
+            </Muted>
+          </Card>
+        </View>
 
         <View>
           <SectionTitle>How scoring works</SectionTitle>

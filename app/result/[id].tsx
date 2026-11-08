@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import * as Linking from 'expo-linking';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -12,6 +13,7 @@ import {
   BottomActions,
   Button,
   Card,
+  Link,
   Muted,
   PillRow,
   ProgressBar,
@@ -19,6 +21,7 @@ import {
   SectionHeader,
   SectionTitle,
 } from '../../src/components/ui';
+import { SUPPORT_URL } from '../../src/links';
 import { getSession } from '../../src/storage';
 import { colors, formatClock, scoreColor, spacing, type } from '../../src/theme';
 import type { Session } from '../../src/types';
@@ -171,6 +174,9 @@ export default function ResultScreen() {
                 <Text style={styles.feedbackTitle}>Tomorrow’s drill</Text>
                 <Body>{coach.nextDrill}</Body>
               </View>
+              <Link onPress={() => void Linking.openURL(SUPPORT_URL)} style={styles.report}>
+                This feedback is AI-generated. Report a problem with it
+              </Link>
             </Card>
           ) : (
             <Card>
@@ -251,6 +257,7 @@ function FeedbackList({
 }
 
 const styles = StyleSheet.create({
+  report: { ...type.caption, color: colors.accent },
   screen: { flex: 1, backgroundColor: colors.bg },
   center: { alignItems: 'center', justifyContent: 'center', gap: spacing.md },
   content: { padding: spacing.md, paddingBottom: spacing.lg, gap: spacing.lg },

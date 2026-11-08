@@ -123,3 +123,7 @@ npx expo export --platform ios   # prove the bundle builds
 - Android's recorder cannot write WAV, so on Android the whole AAC file is sent
   in one request; long talks will exceed the inline limit there. iOS is the
   focus.
+
+## Privacy and App Store
+
+`PRIVACY.md` is the privacy policy the app links to. `APP_STORE.md` lists what the code covers for App Review and the steps that remain in App Store Connect.

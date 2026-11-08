@@ -140,15 +140,18 @@ export function HeroCard({
   style,
   onPress,
   disabled,
+  accessibilityLabel,
 }: PropsWithChildren<{
   style?: StyleProp<ViewStyle>;
   onPress?: () => void;
   disabled?: boolean;
+  accessibilityLabel?: string;
 }>) {
   if (!onPress) return <View style={[styles.hero, style]}>{children}</View>;
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
       onPress={onPress}
       disabled={disabled}
       style={({ pressed }) => [styles.hero, pressed && { opacity: 0.92 }, style]}

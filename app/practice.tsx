@@ -9,10 +9,11 @@ import {
 } from 'expo-audio';
 import { File } from 'expo-file-system';
 import * as Haptics from 'expo-haptics';
+import * as Linking from 'expo-linking';
 import { useKeepAwake } from 'expo-keep-awake';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -25,7 +26,8 @@ import {
   speechSecondsByChunk,
   type VolumeStats,
 } from '../src/audio';
-import { Badge, BottomActions, Button, MicDisc, Muted } from '../src/components/ui';
+import { DataSharingNotice } from '../src/components/DataSharingNotice';
+import { Badge, BottomActions, Button, Card, MicDisc, Muted } from '../src/components/ui';
 import {
   MAX_INLINE_BASE64_CHARS,
   describeNvidiaError,
@@ -34,7 +36,14 @@ import {
 } from '../src/nvidia';
 import { persistRecording } from '../src/recordings';
 import { blendScore, scoreTalk, tokenize } from '../src/scoring';
-import { getNvidiaKey, loadSessions, loadSettings, saveSession } from '../src/storage';
+import {
+  getDataSharingConsent,
+  getNvidiaKey,
+  loadSessions,
+  loadSettings,
+  saveSession,
+  setDataSharingConsent,
+} from '../src/storage';
 import { colors, formatClock, radius, spacing, type } from '../src/theme';
 import {
   DEFAULT_SETTINGS,
@@ -46,7 +55,14 @@ import {
 } from '../src/types';
 import { pickWord } from '../src/words';
 
-type Phase = 'loading' | 'no-permission' | 'reveal' | 'recording' | 'processing' | 'error';
+type Phase =
+  | 'loading'
+  | 'consent'
+  | 'no-permission'
+  | 'reveal'
+  | 'recording'
+  | 'processing'
+  | 'error';
 
 type Recorded = { uri: string; durationSec: number };
 
@@ -101,35 +117,55 @@ export default function PracticeScreen() {
 
   // ---- Setup ---------------------------------------------------------------
 
+  const cancelledRef = useRef(false);
+
+  // Asks for the microphone, then shows the word. Runs once the user has
+  // agreed to the recording being sent off the phone.
+  const beginSession = useCallback(async () => {
+    const permission = await requestRecordingPermissionsAsync();
+    if (cancelledRef.current) return;
+    if (!permission.granted) {
+      setPhase('no-permission');
+      return;
+    }
+    await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+    if (cancelledRef.current) return;
+    setWord(pickWord(recentWordsRef.current));
+    setPhase('reveal');
+  }, []);
+
   useEffect(() => {
-    let cancelled = false;
+    cancelledRef.current = false;
     (async () => {
-      const [loadedSettings, sessions, apiKey] = await Promise.all([
+      const [loadedSettings, sessions, apiKey, consent] = await Promise.all([
         loadSettings(),
         loadSessions(),
         getNvidiaKey(),
+        getDataSharingConsent(),
       ]);
-      if (cancelled) return;
+      if (cancelledRef.current) return;
       apiKeyRef.current = apiKey;
       recentWordsRef.current = sessions.slice(0, 30).map((s) => s.word);
       setSettings(loadedSettings);
       setPrepLeft(loadedSettings.prepSeconds);
 
-      const permission = await requestRecordingPermissionsAsync();
-      if (cancelled) return;
-      if (!permission.granted) {
-        setPhase('no-permission');
+      if (!consent) {
+        setPhase('consent');
         return;
       }
-      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
-      if (cancelled) return;
-      setWord(pickWord(recentWordsRef.current));
-      setPhase('reveal');
+      await beginSession();
     })();
     return () => {
-      cancelled = true;
+      cancelledRef.current = true;
     };
-  }, []);
+  }, [beginSession]);
+
+  const agreeToSharing = useCallback(async () => {
+    await setDataSharingConsent(true);
+    if (cancelledRef.current) return;
+    setPhase('loading');
+    await beginSession();
+  }, [beginSession]);
 
   // ---- Recording control ---------------------------------------------------
 
@@ -357,16 +393,55 @@ export default function PracticeScreen() {
     );
   }
 
+  if (phase === 'consent') {
+    return (
+      <View style={container}>
+        <ScrollView contentContainerStyle={styles.consentContent}>
+          <Text style={styles.heading}>Before your first talk</Text>
+          <Muted style={styles.centeredText}>
+            Mind to Mouth needs to send your recording to an AI service to score it. Here is
+            exactly what happens.
+          </Muted>
+          <Card>
+            <DataSharingNotice />
+          </Card>
+          <Muted style={styles.centeredText}>
+            You can withdraw this at any time in Settings.
+          </Muted>
+        </ScrollView>
+        <View style={styles.stacked}>
+          <Button title="Agree and continue" icon="checkmark" onPress={() => void agreeToSharing()} />
+          <Button title="Not now" variant="ghost" onPress={() => router.back()} />
+        </View>
+      </View>
+    );
+  }
+
   if (phase === 'no-permission') {
     return (
       <View style={container}>
         <View style={styles.center}>
           <Text style={styles.heading}>Microphone needed</Text>
           <Muted style={styles.centeredText}>
-            Allow microphone access in iOS Settings, then come back to practise.
+            Mind to Mouth cannot record a talk without the microphone. Allow it in iOS Settings,
+            then come back to practise.
           </Muted>
         </View>
-        <Button title="Back" variant="secondary" icon="chevron-back" onPress={() => router.back()} />
+        <BottomActions>
+          <Button
+            title="Open Settings"
+            icon="settings-outline"
+            onPress={() => void Linking.openSettings()}
+            style={styles.half}
+          />
+          <Button
+            title="Back"
+            variant="secondary"
+            icon="chevron-back"
+            onPress={() => router.back()}
+            style={styles.half}
+          />
+        </BottomActions>
       </View>
     );
   }
@@ -516,6 +591,8 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg, paddingHorizontal: spacing.md },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md },
   centeredText: { textAlign: 'center', paddingHorizontal: spacing.md },
+  consentContent: { gap: spacing.lg, paddingBottom: spacing.lg, paddingTop: spacing.lg },
+  stacked: { gap: spacing.sm },
   topRow: { alignItems: 'center', gap: spacing.sm },
   centeredBadge: { alignSelf: 'center' },
   heading: { ...type.h2, color: colors.text, textAlign: 'center' },
