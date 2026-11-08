@@ -209,18 +209,60 @@ export function splitAtQuietPoints(
   let start = 0;
   while (total - start > target + tol) {
     const lo = Math.floor((start + target - tol) / frameLen);
-    const hi = Math.min(smooth.length - 1, Math.floor((start + target + tol) / frameLen));
+    // Never leave a tail shorter than `minTail`: pulling the cut forward keeps
+    // the final chunk a sensible length, and no chunk ever exceeds target + tol.
+    // (Merging the tail instead once produced a 16 s chunk that was too large
+    // for the inline upload limit.)
+    const hi = Math.min(
+      smooth.length - 1,
+      Math.floor((start + target + tol) / frameLen),
+      Math.floor((total - minTail) / frameLen),
+    );
     let bestFrame = lo;
     for (let f = lo; f <= hi; f += 1) {
       if (smooth[f] < smooth[bestFrame]) bestFrame = f;
     }
-    const cut = bestFrame * frameLen;
-    if (total - cut < minTail) break;
+    const cut = Math.max(bestFrame * frameLen, start + frameLen);
     chunks.push({ sampleRate, samples: samples.slice(start, cut) });
     start = cut;
   }
   chunks.push({ sampleRate, samples: samples.slice(start) });
   return chunks;
+}
+
+/** ADPCM block layout used by `encodeImaAdpcmWav` with the default block size. */
+const ADPCM_BLOCK_BYTES = 256;
+const ADPCM_SAMPLES_PER_BLOCK = (ADPCM_BLOCK_BYTES - 4) * 2 + 1;
+const ADPCM_HEADER_BYTES = 60;
+
+/**
+ * Longest chunk, in samples, whose IMA ADPCM WAV stays under `maxBase64Chars`
+ * once inlined as base64, with a 10% margin.
+ */
+export function maxUploadSamples(maxBase64Chars: number): number {
+  const maxBytes = Math.floor((maxBase64Chars / 4) * 3 * 0.9) - ADPCM_HEADER_BYTES;
+  return Math.floor(maxBytes / ADPCM_BLOCK_BYTES) * ADPCM_SAMPLES_PER_BLOCK;
+}
+
+/**
+ * Chunks a talk for upload: cuts at quiet moments, then halves any chunk that
+ * would still exceed the inline payload limit (for example when a device
+ * records at a higher sample rate than requested). Every chunk returned fits.
+ */
+export function chunksForUpload(pcm: PcmAudio, maxBase64Chars: number): PcmAudio[] {
+  const limit = Math.max(1, maxUploadSamples(maxBase64Chars));
+  const out: PcmAudio[] = [];
+  const push = (chunk: PcmAudio) => {
+    if (chunk.samples.length <= limit) {
+      out.push(chunk);
+      return;
+    }
+    const mid = Math.floor(chunk.samples.length / 2);
+    push({ sampleRate: chunk.sampleRate, samples: chunk.samples.slice(0, mid) });
+    push({ sampleRate: chunk.sampleRate, samples: chunk.samples.slice(mid) });
+  };
+  for (const chunk of splitAtQuietPoints(pcm)) push(chunk);
+  return out;
 }
 
 // ---- IMA ADPCM WAV encoder --------------------------------------------------

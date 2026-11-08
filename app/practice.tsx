@@ -15,15 +15,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import {
-  analyzePauses,
-  encodeImaAdpcmWav,
-  isWav,
-  parseWav,
-  splitAtQuietPoints,
-} from '../src/audio';
+import { analyzePauses, chunksForUpload, encodeImaAdpcmWav, isWav, parseWav } from '../src/audio';
 import { Badge, BottomActions, Button, MicDisc, Muted } from '../src/components/ui';
-import { describeNvidiaError, getCoachFeedback, transcribeChunks } from '../src/nvidia';
+import {
+  MAX_INLINE_BASE64_CHARS,
+  describeNvidiaError,
+  getCoachFeedback,
+  transcribeChunks,
+} from '../src/nvidia';
 import { persistRecording } from '../src/recordings';
 import { blendScore, scoreTalk } from '../src/scoring';
 import { getNvidiaKey, loadSessions, loadSettings, saveSession } from '../src/storage';
@@ -157,7 +156,7 @@ export default function PracticeScreen() {
         if (isWav(bytes)) {
           const pcm = parseWav(bytes);
           longestPauseSec = analyzePauses(pcm).longestPauseSec;
-          chunks = splitAtQuietPoints(pcm).map((c) => encodeImaAdpcmWav(c));
+          chunks = chunksForUpload(pcm, MAX_INLINE_BASE64_CHARS).map((c) => encodeImaAdpcmWav(c));
         } else {
           // Non-WAV (Android AAC): send the whole file in one go.
           chunks = [bytes];
