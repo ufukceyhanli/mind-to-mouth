@@ -231,17 +231,41 @@ export function measureVolume(pcm: PcmAudio, frameMs = 50, windowSec = 2): Volum
   };
 }
 
+/** Quiet gaps shorter than this are part of speech (between words), not pauses. */
+const MIN_PAUSE_MS = 400;
+
 /**
- * Seconds of actual speech in each chunk, judged against the silence
+ * Marks each frame as speech or pause. A frame above the silence threshold is
+ * speech; so is any quiet frame inside a gap shorter than `MIN_PAUSE_MS`, so
+ * soft consonants, word endings and the breath between two words count as
+ * talking time. Only genuine pauses are left out.
+ */
+export function speechMask(rms: Float32Array, threshold: number, frameMs: number): Uint8Array {
+  const mask = new Uint8Array(rms.length);
+  const minPauseFrames = Math.max(1, Math.round(MIN_PAUSE_MS / frameMs));
+  let lastSpeech = -1;
+  for (let i = 0; i < rms.length; i += 1) {
+    if (rms[i] < threshold) continue;
+    mask[i] = 1;
+    // Bridge a short quiet gap back to the previous speech frame.
+    if (lastSpeech >= 0 && i - lastSpeech - 1 < minPauseFrames) mask.fill(1, lastSpeech + 1, i);
+    lastSpeech = i;
+  }
+  return mask;
+}
+
+/**
+ * Seconds of speaking time in each chunk, judged against the silence
  * threshold of the whole talk (a per-chunk threshold misjudges short or
- * quiet chunks). Used to measure how fast the speaker talks while talking.
+ * quiet chunks). Used to measure how fast the speaker talks while talking,
+ * leaving pauses out but keeping the natural gaps between words.
  */
 export function speechSecondsByChunk(full: PcmAudio, chunks: PcmAudio[], frameMs = 50): number[] {
   const threshold = silenceThreshold(frameRms(full, frameMs));
   return chunks.map((chunk) => {
-    const rms = frameRms(chunk, frameMs);
+    const mask = speechMask(frameRms(chunk, frameMs), threshold, frameMs);
     let speechFrames = 0;
-    for (let i = 0; i < rms.length; i += 1) if (rms[i] >= threshold) speechFrames += 1;
+    for (let i = 0; i < mask.length; i += 1) speechFrames += mask[i];
     return (speechFrames * frameMs) / 1000;
   });
 }

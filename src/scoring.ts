@@ -144,20 +144,20 @@ export function scoreTalk(params: {
     varietyDetail = 'Not enough timing data to measure changes of pace.';
   } else {
     const { cv, min, max } = variety;
-    // Rates are measured while actually speaking, so pauses do not count as
-    // "slow". Unrehearsed talks naturally spread 10-20%; below ~8% reads as
-    // monotone, ~25% and up is lively and deliberate.
-    varietyScore = ramp(cv, 0.08, 0.25);
+    // Rates are measured while actually speaking, with pauses left out, so a
+    // pause does not read as "slow". Unrehearsed talks naturally spread about
+    // 10%; under ~5% reads as monotone, ~20% and up is lively and deliberate.
+    varietyScore = ramp(cv, 0.05, 0.2);
     // Past ~45% the changes stop feeling deliberate; ease the score back.
     if (cv > 0.45) varietyScore *= 1 - 0.5 * ramp(cv, 0.45, 0.8);
     varietyDetail =
-      cv < 0.08
-        ? `You spoke at a steady ${min}–${max} words/min throughout. Speed up for a story, slow down for the point.`
+      cv < 0.05
+        ? `While speaking you held a steady ${min}–${max} words/min. Speed up for a story, slow down for the point.`
         : cv > 0.45
-          ? `Your speaking rate swung from ${min} to ${max} words/min. Vary it on purpose, not at random.`
-          : cv < 0.25
-            ? `Your speaking rate moved between ${min} and ${max} words/min. More contrast would hold attention.`
-            : `Your speaking rate ranged from ${min} to ${max} words/min. Good variety.`;
+          ? `While speaking your rate swung from ${min} to ${max} words/min. Vary it on purpose, not at random.`
+          : cv < 0.2
+            ? `While speaking your rate moved between ${min} and ${max} words/min. More contrast would hold attention.`
+            : `While speaking your rate ranged from ${min} to ${max} words/min. Good variety.`;
   }
   components.push({
     key: 'variety',
