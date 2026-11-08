@@ -13,8 +13,10 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 
+import { providerLabel, useAuth } from '../../src/auth/AuthProvider';
+import { describeAuthError } from '../../src/auth/supabase';
 import { DataSharingNotice } from '../../src/components/DataSharingNotice';
 import { Button, Card, Chip, Link, Muted, PageHeader, SectionTitle } from '../../src/components/ui';
 import { PRIVACY_POLICY_URL, SUPPORT_URL } from '../../src/links';
@@ -47,6 +49,8 @@ export default function SettingsScreen() {
   const [justSaved, setJustSaved] = useState(false);
   const [consentDate, setConsentDate] = useState<string | null>(null);
   const [talkCount, setTalkCount] = useState(0);
+  const auth = useAuth();
+  const [accountBusy, setAccountBusy] = useState<null | 'signout' | 'delete'>(null);
 
   // Consent and the talk count can change elsewhere (first practice, deleting
   // from Talks), so they reload every time the tab is shown.
@@ -100,6 +104,45 @@ export default function SettingsScreen() {
     );
   };
 
+  const signOut = async () => {
+    setAccountBusy('signout');
+    try {
+      await auth.signOut();
+    } catch (e) {
+      Alert.alert('Could not sign out', describeAuthError(e));
+    } finally {
+      setAccountBusy(null);
+    }
+  };
+
+  // App Store guideline 5.1.1(v): an account that can be created in the app
+  // must be deletable in the app, server data included.
+  const deleteAccount = () => {
+    const email = auth.session?.user.email;
+    Alert.alert(
+      'Delete your account?',
+      `${email ? `${email} and` : 'Your account and'} everything the server holds about it will be removed. This cannot be undone. Talks on this phone are not affected.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete account',
+          style: 'destructive',
+          onPress: async () => {
+            setAccountBusy('delete');
+            try {
+              await auth.deleteAccount();
+              Alert.alert('Account deleted', 'You are signed out. Your talks are still on this phone.');
+            } catch (e) {
+              Alert.alert('Could not delete the account', describeAuthError(e));
+            } finally {
+              setAccountBusy(null);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -145,6 +188,54 @@ export default function SettingsScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <PageHeader title="Settings" />
+
+        {auth.configured && (
+          <View>
+            <SectionTitle>Account</SectionTitle>
+            {auth.session ? (
+              <Card style={{ gap: spacing.md }}>
+                <View>
+                  <Text style={styles.label}>Signed in as</Text>
+                  <Text style={styles.value} selectable>
+                    {auth.session.user.email ?? 'No email on file'}
+                  </Text>
+                  <Muted style={styles.hint}>
+                    With {providerLabel(auth.session)}. Your talks and recordings stay on this phone.
+                  </Muted>
+                </View>
+                <Button
+                  title="Sign out"
+                  variant="secondary"
+                  icon="log-out-outline"
+                  onPress={() => void signOut()}
+                  loading={accountBusy === 'signout'}
+                  disabled={accountBusy === 'delete'}
+                />
+                <Button
+                  title="Delete account"
+                  variant="danger"
+                  icon="person-remove-outline"
+                  onPress={deleteAccount}
+                  loading={accountBusy === 'delete'}
+                  disabled={accountBusy === 'signout'}
+                />
+              </Card>
+            ) : (
+              <Card style={{ gap: spacing.md }}>
+                <Muted>
+                  Optional. An account identifies you; talks, recordings and scores stay on this
+                  phone either way.
+                </Muted>
+                <Button
+                  title="Sign in or create account"
+                  variant="secondary"
+                  icon="person-outline"
+                  onPress={() => router.push('/auth')}
+                />
+              </Card>
+            )}
+          </View>
+        )}
 
         {!hasBundledNvidiaKey && (
           <View>
@@ -365,6 +456,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   content: { paddingHorizontal: spacing.md, gap: spacing.lg },
   label: { ...type.label, color: colors.text, marginBottom: spacing.sm },
+  value: { ...type.body, color: colors.text },
   labelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   input: {

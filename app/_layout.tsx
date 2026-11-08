@@ -5,19 +5,34 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { AuthProvider, useAuth } from '../src/auth/AuthProvider';
 import { colors, fonts } from '../src/theme';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const [loaded, error] = useFonts({ Lato_400Regular, Lato_700Bold, Lato_900Black });
+  return (
+    <AuthProvider>
+      <RootNavigator />
+    </AuthProvider>
+  );
+}
 
+function RootNavigator() {
+  const [loaded, error] = useFonts({ Lato_400Regular, Lato_700Bold, Lato_900Black });
+  const { ready, session } = useAuth();
+  const fontsSettled = loaded || error;
+
+  // The splash screen stays up until the fonts and the stored sign-in state are
+  // both known, so a signed-in user never flashes the signed-out UI.
   useEffect(() => {
-    if (loaded || error) SplashScreen.hideAsync();
-  }, [loaded, error]);
+    if (fontsSettled && ready) SplashScreen.hideAsync();
+  }, [fontsSettled, ready]);
 
   // If the fonts fail to load the app still renders, with the system font.
-  if (!loaded && !error) return null;
+  if (!fontsSettled || !ready) return null;
+
+  const signedIn = session !== null;
 
   return (
     <SafeAreaProvider>
@@ -41,6 +56,19 @@ export default function RootLayout() {
           name="result/[id]"
           options={{ title: '', headerBackTitle: 'Back' }}
         />
+        {/* Accounts are optional: the app works signed out. The guards only
+            keep a signed-in user off the sign-in form and a signed-out user
+            off the new-password form, bouncing them back to the tabs. */}
+        <Stack.Protected guard={!signedIn}>
+          <Stack.Screen name="auth/index" options={{ title: 'Account', headerBackTitle: 'Back' }} />
+        </Stack.Protected>
+        <Stack.Protected guard={signedIn}>
+          <Stack.Screen
+            name="auth/reset"
+            options={{ title: 'New password', headerBackTitle: 'Back' }}
+          />
+        </Stack.Protected>
+        <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
       </Stack>
     </SafeAreaProvider>
   );
