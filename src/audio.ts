@@ -166,6 +166,21 @@ export function analyzePauses(pcm: PcmAudio, frameMs = 50): PauseStats {
   };
 }
 
+/**
+ * Seconds of actual speech in each chunk, judged against the silence
+ * threshold of the whole talk (a per-chunk threshold misjudges short or
+ * quiet chunks). Used to measure how fast the speaker talks while talking.
+ */
+export function speechSecondsByChunk(full: PcmAudio, chunks: PcmAudio[], frameMs = 50): number[] {
+  const threshold = silenceThreshold(frameRms(full, frameMs));
+  return chunks.map((chunk) => {
+    const rms = frameRms(chunk, frameMs);
+    let speechFrames = 0;
+    for (let i = 0; i < rms.length; i += 1) if (rms[i] >= threshold) speechFrames += 1;
+    return (speechFrames * frameMs) / 1000;
+  });
+}
+
 // ---- Chunking ---------------------------------------------------------------
 
 /**

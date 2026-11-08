@@ -1,13 +1,24 @@
+/** One transcribed audio chunk: how many words were said, over how long. */
+export type SpeechSegment = {
+  words: number;
+  /** Wall-clock length of the chunk. */
+  durationSec: number;
+  /** Seconds of actual speech in the chunk (silences removed). */
+  speechSec: number;
+};
+
 export type Transcription = {
   text: string;
   /** Longest silence in the recording, measured from the audio itself. */
   longestPauseSec: number | null;
   /** How many audio chunks were sent for transcription. */
   chunkCount: number;
+  /** Per-chunk word counts and durations, in order; empty when unknown. */
+  segments: SpeechSegment[];
 };
 
 export type ScoreComponent = {
-  key: 'duration' | 'pace' | 'fluency' | 'vocabulary' | 'relevance' | 'flow';
+  key: 'duration' | 'pace' | 'variety' | 'fluency' | 'vocabulary' | 'relevance' | 'flow';
   label: string;
   points: number;
   max: number;
@@ -25,6 +36,8 @@ export type ScoreBreakdown = {
     uniqueWords: number;
     topicMentions: number;
     longestPauseSec: number | null;
+    /** Slowest and fastest speaking rate (words/min while talking), or null when not measured. */
+    paceRange: [number, number] | null;
   };
 };
 

@@ -15,7 +15,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { analyzePauses, chunksForUpload, encodeImaAdpcmWav, isWav, parseWav } from '../src/audio';
+import {
+  analyzePauses,
+  chunksForUpload,
+  encodeImaAdpcmWav,
+  isWav,
+  parseWav,
+  speechSecondsByChunk,
+} from '../src/audio';
 import { Badge, BottomActions, Button, MicDisc, Muted } from '../src/components/ui';
 import {
   MAX_INLINE_BASE64_CHARS,
@@ -24,7 +31,7 @@ import {
   transcribeChunks,
 } from '../src/nvidia';
 import { persistRecording } from '../src/recordings';
-import { blendScore, scoreTalk } from '../src/scoring';
+import { blendScore, scoreTalk, tokenize } from '../src/scoring';
 import { getNvidiaKey, loadSessions, loadSettings, saveSession } from '../src/storage';
 import { colors, formatClock, radius, spacing, type } from '../src/theme';
 import {
@@ -32,6 +39,7 @@ import {
   type CoachFeedback,
   type Session,
   type Settings,
+  type SpeechSegment,
   type Transcription,
 } from '../src/types';
 import { pickWord } from '../src/words';
@@ -152,18 +160,23 @@ export default function PracticeScreen() {
         const bytes = await new File(rec.uri).bytes();
 
         let chunks: Uint8Array[];
+        let chunkSeconds: number[] = [];
+        let chunkSpeechSeconds: number[] = [];
         let longestPauseSec: number | null = null;
         if (isWav(bytes)) {
           const pcm = parseWav(bytes);
           longestPauseSec = analyzePauses(pcm).longestPauseSec;
-          chunks = chunksForUpload(pcm, MAX_INLINE_BASE64_CHARS).map((c) => encodeImaAdpcmWav(c));
+          const pcmChunks = chunksForUpload(pcm, MAX_INLINE_BASE64_CHARS);
+          chunks = pcmChunks.map((c) => encodeImaAdpcmWav(c));
+          chunkSeconds = pcmChunks.map((c) => c.samples.length / pcm.sampleRate);
+          chunkSpeechSeconds = speechSecondsByChunk(pcm, pcmChunks);
         } else {
           // Non-WAV (Android AAC): send the whole file in one go.
           chunks = [bytes];
         }
 
         setStatusText(`Transcribing… 0/${chunks.length}`);
-        const text = await transcribeChunks({
+        const { text, parts } = await transcribeChunks({
           apiKey,
           model: currentSettings.transcribeModel,
           chunks,
@@ -173,7 +186,18 @@ export default function PracticeScreen() {
         if (text.length === 0) {
           throw new Error('No speech was recognised. Check the microphone and try again.');
         }
-        const transcription: Transcription = { text, longestPauseSec, chunkCount: chunks.length };
+        // Words per chunk against its speaking time gives the pace over time.
+        const segments: SpeechSegment[] = chunkSeconds.map((durationSec, i) => ({
+          words: tokenize(parts[i] ?? '').length,
+          durationSec,
+          speechSec: chunkSpeechSeconds[i] ?? durationSec,
+        }));
+        const transcription: Transcription = {
+          text,
+          longestPauseSec,
+          chunkCount: chunks.length,
+          segments,
+        };
 
         setStatusText('Scoring…');
         const rubric = scoreTalk({

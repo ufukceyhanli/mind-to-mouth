@@ -235,7 +235,7 @@ export async function transcribeChunks(params: {
   chunks: Uint8Array[];
   onProgress?: (done: number, total: number) => void;
   onRetry?: RetryListener;
-}): Promise<string> {
+}): Promise<{ text: string; parts: string[] }> {
   const { apiKey, model, chunks, onProgress, onRetry } = params;
   let done = 0;
   // Two in flight: the free tier starts refusing requests when hit harder.
@@ -245,11 +245,12 @@ export async function transcribeChunks(params: {
     onProgress?.(done, chunks.length);
     return text;
   });
-  return parts
+  const text = parts
     .filter((p) => p.length > 0)
     .join(' ')
     .replace(/\s+/g, ' ')
     .trim();
+  return { text, parts };
 }
 
 // ---- Pronunciation ----------------------------------------------------------
@@ -444,7 +445,10 @@ export async function getCoachFeedback(params: {
     `Prompt word: ${topic}`,
     `Talk length: ${Math.round(durationSec)} seconds`,
     `Measured: ${rubric.stats.wordCount} words, ${rubric.stats.wordsPerMinute} words/min, ` +
-      `${rubric.stats.fillerCount} filler words, prompt word used ${rubric.stats.topicMentions} times.`,
+      `${rubric.stats.fillerCount} filler words, prompt word used ${rubric.stats.topicMentions} times.` +
+      (rubric.stats.paceRange
+        ? ` Pace ranged from ${rubric.stats.paceRange[0]} to ${rubric.stats.paceRange[1]} words/min across the talk.`
+        : ''),
     '',
     '<transcript>',
     transcript,

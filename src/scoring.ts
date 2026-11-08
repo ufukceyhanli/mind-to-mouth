@@ -2,12 +2,14 @@ import type {
   CoachFeedback,
   ScoreBreakdown,
   ScoreComponent,
+  SpeechSegment,
   Transcription,
 } from './types';
 
 /**
  * Deterministic, on-device rubric. 100 points total:
- *   duration 20 · pace 20 · fluency 20 · vocabulary 15 · relevance 15 · flow 10
+ *   duration 15 · pace 15 · rate variation 10 · fluency 20 · vocabulary 15 ·
+ *   relevance 15 · flow 10
  * Every component explains itself so the user can see exactly what moved.
  */
 
@@ -101,20 +103,20 @@ export function scoreTalk(params: {
 
   const components: ScoreComponent[] = [];
 
-  // Duration (20): full marks for reaching the minimum.
+  // Duration (15): full marks for reaching the minimum.
   const durationRatio = clamp(durationSec / minSeconds, 0, 1);
   components.push({
     key: 'duration',
     label: 'Kept talking',
-    points: Math.round(20 * durationRatio),
-    max: 20,
+    points: Math.round(15 * durationRatio),
+    max: 15,
     detail:
       durationRatio >= 1
         ? `You reached the ${Math.round(minSeconds / 60)}-minute target.`
         : `Stopped at ${Math.round(durationSec)}s of ${minSeconds}s.`,
   });
 
-  // Pace (20): sweet spot 120-160 wpm; fades to zero at 70 and 230.
+  // Pace (15): sweet spot 120-160 wpm; fades to zero at 70 and 230.
   let paceScore: number;
   if (wpm < 120) paceScore = ramp(wpm, 70, 120);
   else if (wpm <= 160) paceScore = 1;
@@ -122,14 +124,47 @@ export function scoreTalk(params: {
   components.push({
     key: 'pace',
     label: 'Pace',
-    points: Math.round(20 * paceScore),
-    max: 20,
+    points: Math.round(15 * paceScore),
+    max: 15,
     detail:
       wpm < 120
         ? `${wpm} words/min is on the slow side. Aim for 120–160.`
         : wpm > 160
           ? `${wpm} words/min is quick. Aim for 120–160 so ideas land.`
           : `${wpm} words/min sits in the conversational sweet spot.`,
+  });
+
+  // Rate variation (10): a voice that speeds up for the story and slows down
+  // for the point holds attention; a flat rate sends people to sleep.
+  const variety = measurePaceVariation(transcription.segments);
+  let varietyScore: number;
+  let varietyDetail: string;
+  if (variety === null) {
+    varietyScore = wordCount > 0 ? 0.7 : 0;
+    varietyDetail = 'Not enough timing data to measure changes of pace.';
+  } else {
+    const { cv, min, max } = variety;
+    // Rates are measured while actually speaking, so pauses do not count as
+    // "slow". Unrehearsed talks naturally spread 10-20%; below ~8% reads as
+    // monotone, ~25% and up is lively and deliberate.
+    varietyScore = ramp(cv, 0.08, 0.25);
+    // Past ~45% the changes stop feeling deliberate; ease the score back.
+    if (cv > 0.45) varietyScore *= 1 - 0.5 * ramp(cv, 0.45, 0.8);
+    varietyDetail =
+      cv < 0.08
+        ? `You spoke at a steady ${min}–${max} words/min throughout. Speed up for a story, slow down for the point.`
+        : cv > 0.45
+          ? `Your speaking rate swung from ${min} to ${max} words/min. Vary it on purpose, not at random.`
+          : cv < 0.25
+            ? `Your speaking rate moved between ${min} and ${max} words/min. More contrast would hold attention.`
+            : `Your speaking rate ranged from ${min} to ${max} words/min. Good variety.`;
+  }
+  components.push({
+    key: 'variety',
+    label: 'Rate variation',
+    points: Math.round(10 * varietyScore),
+    max: 10,
+    detail: varietyDetail,
   });
 
   // Fluency (20): ≤1 filler per 100 words is clean; ≥8 per 100 is zero.
@@ -206,7 +241,36 @@ export function scoreTalk(params: {
       uniqueWords,
       topicMentions,
       longestPauseSec: pause,
+      paceRange: variety ? [variety.min, variety.max] : null,
     },
+  };
+}
+
+/** Chunks with this little speech, or this few words, say nothing reliable about pace. */
+const MIN_SEGMENT_SPEECH_SEC = 3;
+const MIN_SEGMENT_WORDS = 5;
+const MIN_SEGMENTS = 3;
+
+/**
+ * How much the speaking rate changes over a talk, from the words per minute
+ * of actual speech in each transcribed chunk. Returns the coefficient of
+ * variation (standard deviation over the mean) plus the slowest and fastest
+ * chunk, or null when there are too few usable chunks to say anything.
+ */
+export function measurePaceVariation(
+  segments: SpeechSegment[],
+): { cv: number; min: number; max: number } | null {
+  const rates = segments
+    .filter((s) => s.speechSec >= MIN_SEGMENT_SPEECH_SEC && s.words >= MIN_SEGMENT_WORDS)
+    .map((s) => (s.words / s.speechSec) * 60);
+  if (rates.length < MIN_SEGMENTS) return null;
+  const mean = rates.reduce((a, b) => a + b, 0) / rates.length;
+  if (mean <= 0) return null;
+  const variance = rates.reduce((a, r) => a + (r - mean) ** 2, 0) / rates.length;
+  return {
+    cv: Math.sqrt(variance) / mean,
+    min: Math.round(Math.min(...rates)),
+    max: Math.round(Math.max(...rates)),
   };
 }
 
