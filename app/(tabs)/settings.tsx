@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Switch,
@@ -12,16 +11,16 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button, Card, Muted, SectionTitle } from '../src/components/ui';
+import { Button, Card, Chip, Link, Muted, PageHeader, SectionTitle } from '../../src/components/ui';
 import {
   getStoredNvidiaKey,
   hasBundledNvidiaKey,
   loadSettings,
   saveSettings,
   setNvidiaKey,
-} from '../src/storage';
-import { colors, radius, spacing } from '../src/theme';
-import { DEFAULT_SETTINGS, type Settings } from '../src/types';
+} from '../../src/storage';
+import { colors, radius, spacing, type } from '../../src/theme';
+import { DEFAULT_SETTINGS, type Settings } from '../../src/types';
 
 const PREP_OPTIONS = [5, 10, 20, 30];
 const MIN_OPTIONS = [60, 90, 120, 180];
@@ -73,60 +72,65 @@ export default function SettingsScreen() {
       keyboardVerticalOffset={100}
     >
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + spacing.xl }]}
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: insets.top + spacing.lg, paddingBottom: spacing.xl },
+        ]}
         keyboardShouldPersistTaps="handled"
       >
-        <View>
-          <SectionTitle>NVIDIA API</SectionTitle>
-          <Card style={{ gap: spacing.md }}>
-            <View>
-              <Text style={styles.label}>API key</Text>
-              <TextInput
-                value={apiKey}
-                onChangeText={setApiKey}
-                placeholder={hasBundledNvidiaKey ? 'Using the built-in key' : 'nvapi-…'}
-                placeholderTextColor={colors.muted}
-                autoCapitalize="none"
-                autoCorrect={false}
-                secureTextEntry={!reveal}
-                style={styles.input}
-              />
-              <Muted style={styles.hint}>
-                {hasBundledNvidiaKey
-                  ? 'This build ships with a key. Enter one here only to override it; clear the field to go back to the built-in key.'
-                  : 'Free at build.nvidia.com. Used for both transcription and coaching.'}{' '}
-                Stored in the device keychain and only ever sent to integrate.api.nvidia.com.
-              </Muted>
-            </View>
-            <Pressable onPress={() => setReveal((v) => !v)}>
-              <Text style={styles.link}>{reveal ? 'Hide key' : 'Show key'}</Text>
-            </Pressable>
-          </Card>
-        </View>
+        <PageHeader title="Settings" />
 
-        <View>
-          <SectionTitle>Models</SectionTitle>
-          <Card style={{ gap: spacing.md }}>
-            <ModelField
-              label="Speech to text"
-              value={settings.transcribeModel}
-              defaultValue={DEFAULT_SETTINGS.transcribeModel}
-              hint="Must accept audio input over chat completions. Nemotron 3 Nano Omni does; each chunk is under 30 seconds."
-              onChange={(transcribeModel) => setSettings((s) => ({ ...s, transcribeModel }))}
-            />
-            <ModelField
-              label="Coach"
-              value={settings.coachModel}
-              defaultValue={DEFAULT_SETTINGS.coachModel}
-              hint="Any text model on build.nvidia.com that can return JSON. Nemotron 3 Ultra is NVIDIA's most capable."
-              onChange={(coachModel) => setSettings((s) => ({ ...s, coachModel }))}
-            />
-          </Card>
-        </View>
+        {!hasBundledNvidiaKey && (
+          <View>
+            <SectionTitle>Access key</SectionTitle>
+            <Card style={{ gap: spacing.md }}>
+              <View>
+                <Text style={styles.label}>Key</Text>
+                <TextInput
+                  value={apiKey}
+                  onChangeText={setApiKey}
+                  placeholder="Paste your access key"
+                  placeholderTextColor={colors.muted}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  secureTextEntry={!reveal}
+                  style={styles.input}
+                />
+                <Muted style={styles.hint}>
+                  Used for transcription and coaching. Stored in the device keychain and only sent
+                  to the transcription service.
+                </Muted>
+              </View>
+              <Link onPress={() => setReveal((v) => !v)}>{reveal ? 'Hide key' : 'Show key'}</Link>
+            </Card>
+          </View>
+        )}
+
+        {!hasBundledNvidiaKey && (
+          <View>
+            <SectionTitle>Models</SectionTitle>
+            <Card style={{ gap: spacing.md }}>
+              <ModelField
+                label="Speech to text"
+                value={settings.transcribeModel}
+                defaultValue={DEFAULT_SETTINGS.transcribeModel}
+                hint="Must accept audio input over chat completions; each chunk is under 30 seconds."
+                onChange={(transcribeModel) => setSettings((s) => ({ ...s, transcribeModel }))}
+              />
+              <ModelField
+                label="Coach"
+                value={settings.coachModel}
+                defaultValue={DEFAULT_SETTINGS.coachModel}
+                hint="Any text model that can return JSON."
+                onChange={(coachModel) => setSettings((s) => ({ ...s, coachModel }))}
+              />
+            </Card>
+          </View>
+        )}
 
         <View>
           <SectionTitle>Practice</SectionTitle>
-          <Card style={{ gap: spacing.md }}>
+          <Card style={{ gap: spacing.lg }}>
             <OptionRow
               label="Thinking time"
               options={PREP_OPTIONS}
@@ -156,8 +160,8 @@ export default function SettingsScreen() {
                   onValueChange={(checkPronunciation) =>
                     setSettings((s) => ({ ...s, checkPronunciation }))
                   }
-                  trackColor={{ true: colors.accent, false: colors.border }}
-                  thumbColor={colors.text}
+                  trackColor={{ true: colors.accent, false: colors.surfaceAlt }}
+                  thumbColor={colors.white}
                 />
               </View>
               <Muted style={styles.hint}>
@@ -169,15 +173,21 @@ export default function SettingsScreen() {
           </Card>
         </View>
 
-        <Button title={justSaved ? 'Saved' : 'Save'} onPress={() => void save()} loading={saving} />
+        <Button
+          title={justSaved ? 'Saved' : 'Save'}
+          icon={justSaved ? 'checkmark' : undefined}
+          onPress={() => void save()}
+          loading={saving}
+        />
 
         <View>
           <SectionTitle>How scoring works</SectionTitle>
           <Card>
             <Muted>
-              The delivery rubric runs on your phone: keeping going (20), pace (20), fluency (20),
-              vocabulary range (15), staying on topic (15) and flow (10). The coach model adds three
-              content scores out of 10 and the final number is 60% rubric, 40% coach.
+              The delivery rubric runs on your phone: keeping going (15), pace (15), rate
+              variation (10), volume (10), fluency (15), vocabulary range (10), staying on topic
+              (15) and flow (10). The coach adds three content scores out of 10 and the final
+              number is 60% rubric, 40% coach.
             </Muted>
           </Card>
         </View>
@@ -203,11 +213,7 @@ function ModelField({
     <View>
       <View style={styles.labelRow}>
         <Text style={styles.label}>{label}</Text>
-        {value !== defaultValue && (
-          <Pressable onPress={() => onChange(defaultValue)}>
-            <Text style={styles.link}>Reset</Text>
-          </Pressable>
-        )}
+        {value !== defaultValue && <Link onPress={() => onChange(defaultValue)}>Reset</Link>}
       </View>
       <TextInput
         value={value}
@@ -239,23 +245,15 @@ function OptionRow({
   return (
     <View>
       <Text style={styles.label}>{label}</Text>
-      <View style={styles.pills}>
-        {options.map((opt) => {
-          const selected = opt === value;
-          return (
-            <Pressable
-              key={opt}
-              accessibilityRole="button"
-              accessibilityState={{ selected }}
-              onPress={() => onChange(opt)}
-              style={[styles.pill, selected && styles.pillSelected]}
-            >
-              <Text style={[styles.pillText, selected && styles.pillTextSelected]}>
-                {format(opt)}
-              </Text>
-            </Pressable>
-          );
-        })}
+      <View style={styles.chips}>
+        {options.map((opt) => (
+          <Chip
+            key={opt}
+            label={format(opt)}
+            selected={opt === value}
+            onPress={() => onChange(opt)}
+          />
+        ))}
       </View>
     </View>
   );
@@ -263,32 +261,20 @@ function OptionRow({
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: spacing.md, gap: spacing.lg },
-  label: { color: colors.text, fontSize: 15, fontWeight: '600', marginBottom: spacing.sm },
+  content: { paddingHorizontal: spacing.md, gap: spacing.lg },
+  label: { ...type.label, color: colors.text, marginBottom: spacing.sm },
   labelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   input: {
-    backgroundColor: colors.cardAlt,
-    borderRadius: radius.sm,
+    ...type.body,
+    backgroundColor: colors.bg,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
     color: colors.text,
     paddingHorizontal: spacing.md,
-    paddingVertical: 12,
-    fontSize: 15,
+    paddingVertical: 14,
   },
-  hint: { fontSize: 13, marginTop: 6 },
-  link: { color: colors.accent, fontWeight: '600' },
-  pills: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  pill: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: 8,
-    borderRadius: radius.pill,
-    backgroundColor: colors.cardAlt,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  pillSelected: { backgroundColor: colors.accent, borderColor: colors.accent },
-  pillText: { color: colors.text, fontSize: 14, fontWeight: '600' },
-  pillTextSelected: { color: colors.bg },
+  hint: { ...type.caption, marginTop: 8 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
 });

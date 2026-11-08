@@ -1,9 +1,10 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useEffect, useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { recordingUri } from '../recordings';
-import { colors, formatClock, radius, spacing } from '../theme';
+import { colors, formatClock, radius, spacing, type } from '../theme';
 import { Card, Muted, ProgressBar } from './ui';
 
 /**
@@ -65,7 +66,12 @@ function Player({ uri, fallbackDurationSec }: { uri: string; fallbackDurationSec
             pressed && status.isLoaded && styles.playButtonPressed,
           ]}
         >
-          <Text style={styles.playGlyph}>{status.playing ? '❚❚' : '▶'}</Text>
+          <Ionicons
+            name={status.playing ? 'pause' : 'play'}
+            size={24}
+            color={colors.onAccent}
+            style={status.playing ? undefined : { marginLeft: 3 }}
+          />
         </Pressable>
         <View style={styles.track}>
           <ProgressBar value={position} max={Math.max(duration, 1)} color={colors.accent} />
@@ -85,8 +91,8 @@ function Player({ uri, fallbackDurationSec }: { uri: string; fallbackDurationSec
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   playButton: {
-    width: 52,
-    height: 52,
+    width: 56,
+    height: 56,
     borderRadius: radius.pill,
     backgroundColor: colors.accent,
     alignItems: 'center',
@@ -94,8 +100,7 @@ const styles = StyleSheet.create({
   },
   playButtonDisabled: { opacity: 0.4 },
   playButtonPressed: { opacity: 0.8 },
-  playGlyph: { color: colors.bg, fontSize: 18, fontWeight: '800', marginLeft: 2 },
-  track: { flex: 1, gap: spacing.xs },
+  track: { flex: 1, gap: spacing.sm },
   times: { flexDirection: 'row', justifyContent: 'space-between' },
-  time: { fontSize: 12, fontVariant: ['tabular-nums'] },
+  time: { ...type.caption, fontVariant: ['tabular-nums'] },
 });

@@ -6,8 +6,8 @@
     "scheme": "mindtomouth",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "dark",
-    "backgroundColor": "#0B0F14",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#FDF4EA",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mindtomouth.app",
@@ -18,7 +18,7 @@
     "android": {
       "package": "com.mindtomouth.app",
       "adaptiveIcon": {
-        "backgroundColor": "#0B0F14",
+        "backgroundColor": "#FDF4EA",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -37,7 +37,16 @@
         }
       ],
       "expo-secure-store",
-      "expo-asset"
+      "expo-asset",
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#FDF4EA",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200
+        }
+      ]
     ]
   }
 }

@@ -17,22 +17,31 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   analyzePauses,
+  chunksForUpload,
   encodeImaAdpcmWav,
   isWav,
+  measureVolume,
   parseWav,
-  splitAtQuietPoints,
+  speechSecondsByChunk,
+  type VolumeStats,
 } from '../src/audio';
-import { Button, Muted } from '../src/components/ui';
-import { describeNvidiaError, getCoachFeedback, transcribeChunks } from '../src/nvidia';
+import { Badge, BottomActions, Button, MicDisc, Muted } from '../src/components/ui';
+import {
+  MAX_INLINE_BASE64_CHARS,
+  describeNvidiaError,
+  getCoachFeedback,
+  transcribeChunks,
+} from '../src/nvidia';
 import { persistRecording } from '../src/recordings';
-import { blendScore, scoreTalk } from '../src/scoring';
+import { blendScore, scoreTalk, tokenize } from '../src/scoring';
 import { getNvidiaKey, loadSessions, loadSettings, saveSession } from '../src/storage';
-import { colors, formatClock, radius, spacing } from '../src/theme';
+import { colors, formatClock, radius, spacing, type } from '../src/theme';
 import {
   DEFAULT_SETTINGS,
   type CoachFeedback,
   type Session,
   type Settings,
+  type SpeechSegment,
   type Transcription,
 } from '../src/types';
 import { pickWord } from '../src/words';
@@ -146,35 +155,54 @@ export default function PracticeScreen() {
       try {
         const apiKey = apiKeyRef.current;
         if (!apiKey) {
-          throw new Error('No NVIDIA API key. Add one in Settings to get transcripts.');
+          throw new Error('The app has no access key. Add one in Settings to get transcripts.');
         }
 
         setStatusText('Preparing audio…');
         const bytes = await new File(rec.uri).bytes();
 
         let chunks: Uint8Array[];
+        let chunkSeconds: number[] = [];
+        let chunkSpeechSeconds: number[] = [];
         let longestPauseSec: number | null = null;
+        let volume: VolumeStats | null = null;
         if (isWav(bytes)) {
           const pcm = parseWav(bytes);
           longestPauseSec = analyzePauses(pcm).longestPauseSec;
-          chunks = splitAtQuietPoints(pcm).map((c) => encodeImaAdpcmWav(c));
+          volume = measureVolume(pcm);
+          const pcmChunks = chunksForUpload(pcm, MAX_INLINE_BASE64_CHARS);
+          chunks = pcmChunks.map((c) => encodeImaAdpcmWav(c));
+          chunkSeconds = pcmChunks.map((c) => c.samples.length / pcm.sampleRate);
+          chunkSpeechSeconds = speechSecondsByChunk(pcm, pcmChunks);
         } else {
           // Non-WAV (Android AAC): send the whole file in one go.
           chunks = [bytes];
         }
 
         setStatusText(`Transcribing… 0/${chunks.length}`);
-        const text = await transcribeChunks({
+        const { text, parts } = await transcribeChunks({
           apiKey,
           model: currentSettings.transcribeModel,
           chunks,
           onProgress: (done, total) => setStatusText(`Transcribing… ${done}/${total}`),
-          onRetry: (attempt, max) => setStatusText(`NVIDIA is busy, retrying… (${attempt}/${max})`),
+          onRetry: (attempt, max) => setStatusText(`The service is busy, retrying… (${attempt}/${max})`),
         });
         if (text.length === 0) {
           throw new Error('No speech was recognised. Check the microphone and try again.');
         }
-        const transcription: Transcription = { text, longestPauseSec, chunkCount: chunks.length };
+        // Words per chunk against its speaking time gives the pace over time.
+        const segments: SpeechSegment[] = chunkSeconds.map((durationSec, i) => ({
+          words: tokenize(parts[i] ?? '').length,
+          durationSec,
+          speechSec: chunkSpeechSeconds[i] ?? durationSec,
+        }));
+        const transcription: Transcription = {
+          text,
+          longestPauseSec,
+          chunkCount: chunks.length,
+          segments,
+          volume,
+        };
 
         setStatusText('Scoring…');
         const rubric = scoreTalk({
@@ -318,7 +346,7 @@ export default function PracticeScreen() {
 
   const container = [
     styles.screen,
-    { paddingTop: insets.top + spacing.lg, paddingBottom: insets.bottom + spacing.lg },
+    { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.md },
   ];
 
   if (phase === 'loading') {
@@ -331,12 +359,14 @@ export default function PracticeScreen() {
 
   if (phase === 'no-permission') {
     return (
-      <View style={[container, styles.center]}>
-        <Text style={styles.heading}>Microphone needed</Text>
-        <Muted style={styles.centeredText}>
-          Allow microphone access in iOS Settings, then come back to practise.
-        </Muted>
-        <Button title="Back" variant="secondary" onPress={() => router.back()} />
+      <View style={container}>
+        <View style={styles.center}>
+          <Text style={styles.heading}>Microphone needed</Text>
+          <Muted style={styles.centeredText}>
+            Allow microphone access in iOS Settings, then come back to practise.
+          </Muted>
+        </View>
+        <Button title="Back" variant="secondary" icon="chevron-back" onPress={() => router.back()} />
       </View>
     );
   }
@@ -344,25 +374,37 @@ export default function PracticeScreen() {
   if (phase === 'reveal') {
     return (
       <View style={container}>
-        <Muted style={styles.centeredText}>Your word is</Muted>
+        <View style={styles.topRow}>
+          <Badge tone="light" style={styles.centeredBadge}>
+            Your word is
+          </Badge>
+        </View>
         <View style={styles.center}>
+          <MicDisc size={160} />
           <Text style={styles.word}>{word}</Text>
           <Text style={styles.prepNumber}>{prepLeft}</Text>
           <Muted style={styles.centeredText}>
             Think of a way in. Recording starts automatically.
           </Muted>
         </View>
-        <View style={styles.actions}>
-          <Button title="I’m ready, start now" onPress={() => void startRecording()} />
+        <BottomActions>
+          <Button
+            title="I’m ready"
+            icon="mic"
+            onPress={() => void startRecording()}
+            style={styles.half}
+          />
           <Button
             title="Different word"
-            variant="ghost"
+            variant="secondary"
+            icon="shuffle"
             onPress={() => {
               setWord(pickWord([...recentWordsRef.current, word]));
               setPrepLeft(settings.prepSeconds);
             }}
+            style={styles.half}
           />
-        </View>
+        </BottomActions>
       </View>
     );
   }
@@ -372,10 +414,15 @@ export default function PracticeScreen() {
     const reached = remaining <= 0;
     const level = meteringToLevel(recorderState.metering);
     const ringSize = 120 + level * 80;
+    const tint = reached ? colors.success : colors.accent;
     return (
       <View style={container}>
-        <Muted style={styles.centeredText}>Talking about</Muted>
-        <Text style={styles.wordSmall}>{word}</Text>
+        <View style={styles.topRow}>
+          <Badge tone="light" style={styles.centeredBadge}>
+            Talking about
+          </Badge>
+          <Text style={styles.wordSmall}>{word}</Text>
+        </View>
 
         <View style={styles.center}>
           <View style={styles.ringWrap}>
@@ -386,12 +433,12 @@ export default function PracticeScreen() {
                   width: ringSize,
                   height: ringSize,
                   borderRadius: ringSize / 2,
-                  backgroundColor: reached ? colors.success : colors.accent,
+                  backgroundColor: tint,
                   opacity: 0.15 + level * 0.35,
                 },
               ]}
             />
-            <View style={styles.dot} />
+            <View style={[styles.dot, { backgroundColor: tint }]} />
           </View>
           <Text style={[styles.timer, reached && { color: colors.success }]}>
             {reached ? `+${formatClock(-remaining)}` : formatClock(remaining)}
@@ -403,14 +450,22 @@ export default function PracticeScreen() {
           </Muted>
         </View>
 
-        <View style={styles.actions}>
+        <BottomActions>
           <Button
-            title={reached ? 'Finish' : `Finish (unlocks at 0:00)`}
+            title={reached ? 'Finish' : 'Unlocks at 0:00'}
+            icon={reached ? 'checkmark' : 'lock-closed-outline'}
             onPress={() => void finishRecording()}
             disabled={!reached}
+            style={styles.half}
           />
-          <Button title="Discard" variant="ghost" onPress={discard} />
-        </View>
+          <Button
+            title="Discard"
+            variant="secondary"
+            icon="close"
+            onPress={discard}
+            style={styles.half}
+          />
+        </BottomActions>
       </View>
     );
   }
@@ -426,14 +481,25 @@ export default function PracticeScreen() {
   }
 
   return (
-    <View style={[container, styles.center]}>
-      <Text style={styles.heading}>That didn’t work</Text>
-      <Muted style={[styles.centeredText, { marginBottom: spacing.lg }]}>{errorText}</Muted>
-      <View style={styles.actionsInline}>
+    <View style={container}>
+      <View style={styles.center}>
+        <Text style={styles.heading}>That didn’t work</Text>
+        <Muted style={styles.centeredText}>{errorText}</Muted>
+      </View>
+      <View style={styles.actionsStacked}>
         {recorded && (
-          <Button title="Retry" onPress={() => void runPipeline(recorded, word, settings)} />
+          <Button
+            title="Retry"
+            icon="refresh"
+            onPress={() => void runPipeline(recorded, word, settings)}
+          />
         )}
-        <Button title="Settings" variant="secondary" onPress={() => router.push('/settings')} />
+        <Button
+          title="Settings"
+          variant="secondary"
+          icon="settings-outline"
+          onPress={() => router.push('/settings')}
+        />
         <Button title="Home" variant="ghost" onPress={() => router.replace('/')} />
       </View>
     </View>
@@ -447,37 +513,46 @@ function meteringToLevel(metering: number | undefined): number {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg, paddingHorizontal: spacing.lg },
+  screen: { flex: 1, backgroundColor: colors.bg, paddingHorizontal: spacing.md },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md },
-  centeredText: { textAlign: 'center' },
-  heading: { color: colors.text, fontSize: 22, fontWeight: '700', textAlign: 'center' },
+  centeredText: { textAlign: 'center', paddingHorizontal: spacing.md },
+  topRow: { alignItems: 'center', gap: spacing.sm },
+  centeredBadge: { alignSelf: 'center' },
+  heading: { ...type.h2, color: colors.text, textAlign: 'center' },
   word: {
+    ...type.title,
+    fontSize: 40,
+    lineHeight: 46,
     color: colors.text,
-    fontSize: 48,
-    fontWeight: '800',
     textTransform: 'capitalize',
     textAlign: 'center',
-    letterSpacing: -1,
   },
   wordSmall: {
-    color: colors.text,
+    ...type.h2,
     fontSize: 28,
-    fontWeight: '700',
+    lineHeight: 34,
+    color: colors.text,
     textTransform: 'capitalize',
     textAlign: 'center',
-    marginTop: spacing.xs,
   },
-  prepNumber: { color: colors.accent, fontSize: 96, fontWeight: '800', lineHeight: 104 },
+  prepNumber: {
+    fontFamily: type.title.fontFamily,
+    color: colors.accent,
+    fontSize: 88,
+    lineHeight: 96,
+    fontVariant: ['tabular-nums'],
+  },
   ringWrap: { width: 200, height: 200, alignItems: 'center', justifyContent: 'center' },
   ring: { position: 'absolute' },
-  dot: { width: 24, height: 24, borderRadius: radius.pill, backgroundColor: colors.danger },
+  dot: { width: 28, height: 28, borderRadius: radius.pill },
   timer: {
+    fontFamily: type.title.fontFamily,
     color: colors.text,
     fontSize: 64,
-    fontWeight: '800',
+    lineHeight: 72,
     fontVariant: ['tabular-nums'],
     letterSpacing: -1,
   },
-  actions: { gap: spacing.sm },
-  actionsInline: { width: '100%', gap: spacing.sm },
+  half: { flex: 1 },
+  actionsStacked: { gap: spacing.sm },
 });

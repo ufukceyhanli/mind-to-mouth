@@ -55,10 +55,12 @@ The on-device rubric is deterministic and explains every point:
 
 | Component | Max | What it measures |
 | --- | --- | --- |
-| Kept talking | 20 | Reaching the minimum length |
-| Pace | 20 | Words per minute, sweet spot 120–160 |
-| Fluency | 20 | Filler words per 100 words (um, uh, like, you know, …) |
-| Vocabulary range | 15 | Distinct content words relative to length |
+| Kept talking | 15 | Reaching the minimum length |
+| Pace | 15 | Words per minute, sweet spot 120–160 |
+| Rate variation | 10 | How much the speaking rate (words/min while talking, pauses excluded) changes across the talk |
+| Volume | 10 | Speaking level on a 0–10 scale (7 is the target most of the time) and how much it varies |
+| Fluency | 15 | Filler words per 100 words (um, uh, like, you know, …) |
+| Vocabulary range | 10 | Distinct content words relative to length |
 | On topic | 15 | How often the prompt word (or a form of it) came up |
 | Flow | 10 | Longest silence, measured from the audio |
 
@@ -76,19 +78,21 @@ audio-capable or text model from the catalog without a code change.
 
 ```
 app/                 Expo Router screens
-  _layout.tsx        stack navigator
-  index.tsx          home: streak, start button, recent talks
+  _layout.tsx        root stack: loads fonts, hosts the tabs and the practice/result screens
+  (tabs)/_layout.tsx bottom tab bar: Today, Talks, Settings
+  (tabs)/index.tsx   home: streak, today's talk hero card, recent talks
   practice.tsx       word → countdown → recording → processing
   result/[id].tsx    score breakdown, coach notes, transcript
-  history.tsx        all talks (long-press to delete)
-  settings.tsx       API key, model ids, timing options
+  (tabs)/history.tsx all talks (long-press to delete)
+  (tabs)/settings.tsx API key, model ids, timing options
 src/
   words.ts           prompt bank + picker
   audio.ts           WAV parsing, pause analysis, quiet-point chunking, ADPCM encoder
   nvidia.ts          chat-completions client: transcription + coaching
   scoring.ts         rubric and score blending
   storage.ts         AsyncStorage sessions/settings, SecureStore key, streaks
-  components/        small UI kit
+  theme.ts           design tokens: colours, Lato type scale, radii, shadow
+  components/        small UI kit (buttons, cards, chips, pill rows, covers)
 ```
 
 ## Development

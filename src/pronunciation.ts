@@ -6,8 +6,8 @@
  */
 import { File } from 'expo-file-system';
 
-import { encodeImaAdpcmWav, isWav, parseWav, splitAtQuietPoints } from './audio';
-import { assessPronunciation, describeNvidiaError } from './nvidia';
+import { chunksForUpload, encodeImaAdpcmWav, isWav, parseWav } from './audio';
+import { MAX_INLINE_BASE64_CHARS, assessPronunciation, describeNvidiaError } from './nvidia';
 import { recordingUri } from './recordings';
 import { getNvidiaKey, loadSettings, updateSession } from './storage';
 import type { PronunciationReport, Session } from './types';
@@ -42,7 +42,7 @@ async function check(session: Session, onProgress?: ProgressListener): Promise<P
     const uri = recordingUri(session.audioFile);
     if (!uri) throw new Error('The recording is no longer on this device.');
     const [apiKey, settings] = await Promise.all([getNvidiaKey(), loadSettings()]);
-    if (!apiKey) throw new Error('No NVIDIA API key. Add one in Settings.');
+    if (!apiKey) throw new Error('The app has no access key. Add one in Settings.');
 
     const bytes = await new File(uri).bytes();
     const chunks = isWav(bytes) ? wavChunks(bytes) : [{ wavBytes: bytes, offsetSec: 0 }];
@@ -62,7 +62,7 @@ async function check(session: Session, onProgress?: ProgressListener): Promise<P
 function wavChunks(bytes: Uint8Array): { wavBytes: Uint8Array; offsetSec: number }[] {
   const pcm = parseWav(bytes);
   let offsetSamples = 0;
-  return splitAtQuietPoints(pcm).map((chunk) => {
+  return chunksForUpload(pcm, MAX_INLINE_BASE64_CHARS).map((chunk) => {
     const entry = {
       wavBytes: encodeImaAdpcmWav(chunk),
       offsetSec: offsetSamples / pcm.sampleRate,
