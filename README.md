@@ -6,7 +6,8 @@ transcribed, scored, and reviewed by an AI coach so you can watch yourself get
 better at thinking out loud.
 
 Everything runs on free models from [build.nvidia.com](https://build.nvidia.com).
-One API key, no other accounts.
+One API key. Signing in is optional (see *Accounts* below) and never required
+to practise.
 
 ## Run it in Expo Go
 
@@ -84,8 +85,13 @@ app/                 Expo Router screens
   practice.tsx       word → countdown → recording → processing
   result/[id].tsx    score breakdown, coach notes, transcript
   (tabs)/history.tsx all talks (long-press to delete)
-  (tabs)/settings.tsx API key, model ids, timing options
+  (tabs)/settings.tsx account, API key, model ids, timing options, privacy
+  auth/index.tsx     sign in / create account (Apple, email + password, email link)
+  auth/reset.tsx     pick a new password after a reset link
+  auth/callback.tsx  landing route for email links (mindtomouth://auth/callback)
 src/
+  auth/supabase.ts   Supabase client, encrypted session storage, link parsing
+  auth/AuthProvider.tsx  session state, sign-in methods, account deletion
   words.ts           prompt bank + picker
   audio.ts           WAV parsing, pause analysis, quiet-point chunking, ADPCM encoder
   nvidia.ts          chat-completions client: transcription + coaching
@@ -123,6 +129,17 @@ npx expo export --platform ios   # prove the bundle builds
 - Android's recorder cannot write WAV, so on Android the whole AAC file is sent
   in one request; long talks will exceed the inline limit there. iOS is the
   focus.
+
+## Accounts
+
+Accounts are optional and only identify the user; talks never leave the phone.
+They run on [Supabase](https://supabase.com) auth and exist only in builds
+whose `.env` has `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY`
+(see `.env.example`). Without them there is no Account section and no auth
+screen. Setup, including the redirect URL, the Apple provider and the
+`supabase/schema.sql` function behind *Delete account*, is listed step by step
+in `APP_STORE.md`. Sign in with Apple needs a development build (the
+`expo-apple-authentication` native module is not in Expo Go).
 
 ## Privacy and App Store
 

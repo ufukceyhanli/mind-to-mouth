@@ -20,7 +20,7 @@ const POINTS: { icon: IconName; title: string; body: string }[] = [
   {
     icon: 'eye-off-outline',
     title: 'Nothing else leaves the phone',
-    body: 'No account, no analytics, no advertising, no tracking. Only what you say during a talk is sent, and only after you agree.',
+    body: 'No analytics, no advertising, no tracking. An account is optional and never holds your talks. Only what you say during a talk is sent, and only after you agree.',
   },
 ];
 
