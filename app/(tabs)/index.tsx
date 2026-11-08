@@ -86,6 +86,7 @@ export default function HomeScreen() {
       <HeroCard
         style={styles.pad}
         disabled={hasKey === null}
+        accessibilityLabel={hasKey === false ? 'Add your access key' : 'Start today’s talk'}
         onPress={() => router.push(hasKey === false ? '/settings' : '/practice')}
       >
         <View style={styles.heroRow}>

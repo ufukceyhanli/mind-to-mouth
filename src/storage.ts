@@ -7,6 +7,7 @@ import { DEFAULT_SETTINGS, type Session, type Settings } from './types';
 const SESSIONS_KEY = 'mtm.sessions.v1';
 const SETTINGS_KEY = 'mtm.settings.v1';
 const NVIDIA_KEY = 'mtm_nvidia_api_key';
+const CONSENT_KEY = 'mtm.consent.v1';
 
 // ---- Sessions -------------------------------------------------------------
 
@@ -45,6 +46,33 @@ export async function deleteSession(id: string): Promise<void> {
   const target = sessions.find((s) => s.id === id);
   await AsyncStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions.filter((s) => s.id !== id)));
   if (target?.audioFile) deleteRecording(target.audioFile);
+}
+
+/** Removes every talk, its scores and its recording from the device. */
+export async function deleteAllSessions(): Promise<void> {
+  const sessions = await loadSessions();
+  await AsyncStorage.removeItem(SESSIONS_KEY);
+  for (const s of sessions) if (s.audioFile) deleteRecording(s.audioFile);
+}
+
+// ---- Data-sharing consent ---------------------------------------------------
+//
+// Recordings go to a third-party AI service. Apple requires explicit
+// permission before that happens, and a way to take it back, so the date of
+// agreement is kept and cleared on request.
+
+/** ISO date the user agreed to send recordings to the speech service, or null. */
+export async function getDataSharingConsent(): Promise<string | null> {
+  try {
+    return await AsyncStorage.getItem(CONSENT_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export async function setDataSharingConsent(agreed: boolean): Promise<void> {
+  if (agreed) await AsyncStorage.setItem(CONSENT_KEY, new Date().toISOString());
+  else await AsyncStorage.removeItem(CONSENT_KEY);
 }
 
 // ---- Settings -------------------------------------------------------------

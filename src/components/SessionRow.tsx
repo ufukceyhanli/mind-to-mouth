@@ -130,11 +130,17 @@ export function TalkTile({
   );
 }
 
+/** Spoken description for screen readers: word, score and date. */
+function describeSession(session: Session): string {
+  return `${session.word}, ${session.finalScore} out of 100, ${formatDate(session.createdAt)}`;
+}
+
 /** Carousel card: audio tile on top, score bar, date and word below. */
 export function SessionCard({ session, width = 164 }: { session: Session; width?: number }) {
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={describeSession(session)}
       onPress={() => openSession(session)}
       style={({ pressed }) => [styles.card, { width }, pressed && { opacity: 0.85 }]}
     >
@@ -166,6 +172,8 @@ export function SessionRow({
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={describeSession(session)}
+      accessibilityHint={onLongPress ? 'Double-tap to open, long-press to delete' : undefined}
       onPress={() => openSession(session)}
       onLongPress={onLongPress}
       style={({ pressed }) => [styles.row, pressed && { opacity: 0.85 }]}

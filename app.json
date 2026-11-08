@@ -12,7 +12,44 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.mindtomouth.app",
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "Mind to Mouth records your two-minute talk so it can be transcribed and scored."
+        "NSMicrophoneUsageDescription": "Mind to Mouth records your talk so it can be transcribed and scored. Recordings are only sent to the speech service after you agree."
+      },
+      "buildNumber": "1",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "privacyManifests": {
+        "NSPrivacyTracking": false,
+        "NSPrivacyCollectedDataTypes": [
+          {
+            "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeAudioData",
+            "NSPrivacyCollectedDataTypeLinked": false,
+            "NSPrivacyCollectedDataTypeTracking": false,
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
+          }
+        ],
+        "NSPrivacyAccessedAPITypes": [
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "CA92.1"
+            ]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryFileTimestamp",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "C617.1"
+            ]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategorySystemBootTime",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "35F9.1"
+            ]
+          }
+        ]
       }
     },
     "android": {
@@ -33,7 +70,7 @@
       [
         "expo-audio",
         {
-          "microphonePermission": "Mind to Mouth records your two-minute talk so it can be transcribed and scored."
+          "microphonePermission": "Mind to Mouth records your talk so it can be transcribed and scored. Recordings are only sent to the speech service after you agree."
         }
       ],
       "expo-secure-store",
