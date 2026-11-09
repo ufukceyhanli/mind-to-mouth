@@ -136,7 +136,10 @@ Accounts are optional and only identify the user; talks never leave the phone.
 They run on [Supabase](https://supabase.com) auth and exist only in builds
 whose `.env` has `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY`
 (see `.env.example`). Without them there is no Account section and no auth
-screen. Setup, including the redirect URL, the Apple provider and the
+screen. Metro inlines these values when it transforms `src/auth/supabase.ts`
+and caches the result by source content, so after editing `.env` clear the
+cache (`rm -rf "$TMPDIR/metro-cache"` or `npx expo start --clear`) before
+building, or the app ships the old values. Setup, including the redirect URL, the Apple provider and the
 `supabase/schema.sql` function behind *Delete account*, is listed step by step
 in `APP_STORE.md`. Sign in with Apple needs a development build (the
 `expo-apple-authentication` native module is not in Expo Go).
