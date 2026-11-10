@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider, useAuth } from '../src/auth/AuthProvider';
@@ -35,41 +36,43 @@ function RootNavigator() {
   const signedIn = session !== null;
 
   return (
-    <SafeAreaProvider>
-      <StatusBar style="dark" />
-      <Stack
-        screenOptions={{
-          headerStyle: { backgroundColor: colors.bg },
-          headerTintColor: colors.accent,
-          headerShadowVisible: false,
-          headerTitleStyle: { color: colors.text, fontFamily: fonts.bold, fontSize: 17 },
-          headerBackTitleStyle: { fontFamily: fonts.bold, fontSize: 17 },
-          contentStyle: { backgroundColor: colors.bg },
-        }}
-      >
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="practice"
-          options={{ headerShown: false, gestureEnabled: false }}
-        />
-        <Stack.Screen
-          name="result/[id]"
-          options={{ title: '', headerBackTitle: 'Back' }}
-        />
-        {/* Accounts are optional: the app works signed out. The guards only
-            keep a signed-in user off the sign-in form and a signed-out user
-            off the new-password form, bouncing them back to the tabs. */}
-        <Stack.Protected guard={!signedIn}>
-          <Stack.Screen name="auth/index" options={{ title: 'Account', headerBackTitle: 'Back' }} />
-        </Stack.Protected>
-        <Stack.Protected guard={signedIn}>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <StatusBar style="dark" />
+        <Stack
+          screenOptions={{
+            headerStyle: { backgroundColor: colors.bg },
+            headerTintColor: colors.accent,
+            headerShadowVisible: false,
+            headerTitleStyle: { color: colors.text, fontFamily: fonts.bold, fontSize: 17 },
+            headerBackTitleStyle: { fontFamily: fonts.bold, fontSize: 17 },
+            contentStyle: { backgroundColor: colors.bg },
+          }}
+        >
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen
-            name="auth/reset"
-            options={{ title: 'New password', headerBackTitle: 'Back' }}
+            name="practice"
+            options={{ headerShown: false, gestureEnabled: false }}
           />
-        </Stack.Protected>
-        <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
-      </Stack>
-    </SafeAreaProvider>
+          <Stack.Screen
+            name="result/[id]"
+            options={{ title: '', headerBackTitle: 'Back' }}
+          />
+          {/* Accounts are optional: the app works signed out. The guards only
+              keep a signed-in user off the sign-in form and a signed-out user
+              off the new-password form, bouncing them back to the tabs. */}
+          <Stack.Protected guard={!signedIn}>
+            <Stack.Screen name="auth/index" options={{ title: 'Account', headerBackTitle: 'Back' }} />
+          </Stack.Protected>
+          <Stack.Protected guard={signedIn}>
+            <Stack.Screen
+              name="auth/reset"
+              options={{ title: 'New password', headerBackTitle: 'Back' }}
+            />
+          </Stack.Protected>
+          <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
+        </Stack>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }

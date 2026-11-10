@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import {
   colors,
@@ -161,22 +161,32 @@ export function SessionCard({ session, width = 164 }: { session: Session; width?
   );
 }
 
-/** List row: small waveform thumbnail, word, date and duration, score on the right. */
+/**
+ * List row: small waveform thumbnail, word, date and duration, score on the
+ * right. With `onDelete`, a long-press and a VoiceOver "Delete talk" action
+ * both ask to delete the talk.
+ */
 export function SessionRow({
   session,
-  onLongPress,
+  onDelete,
+  style,
 }: {
   session: Session;
-  onLongPress?: () => void;
+  onDelete?: () => void;
+  style?: StyleProp<ViewStyle>;
 }) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={describeSession(session)}
-      accessibilityHint={onLongPress ? 'Double-tap to open, long-press to delete' : undefined}
+      accessibilityHint={onDelete ? 'Double-tap to open, long-press to delete' : undefined}
+      accessibilityActions={onDelete ? [{ name: 'delete', label: 'Delete talk' }] : undefined}
+      onAccessibilityAction={(e) => {
+        if (e.nativeEvent.actionName === 'delete') onDelete?.();
+      }}
       onPress={() => openSession(session)}
-      onLongPress={onLongPress}
-      style={({ pressed }) => [styles.row, pressed && { opacity: 0.85 }]}
+      onLongPress={onDelete}
+      style={({ pressed }) => [styles.row, pressed && { opacity: 0.85 }, style]}
     >
       <TalkTile seed={session.word} width={60} height={60} />
       <View style={{ flex: 1, gap: 2 }}>

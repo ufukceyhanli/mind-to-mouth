@@ -1,8 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Linking from 'expo-linking';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PronunciationCard } from '../../src/components/PronunciationCard';
@@ -22,7 +22,7 @@ import {
   SectionTitle,
 } from '../../src/components/ui';
 import { SUPPORT_URL } from '../../src/links';
-import { getSession } from '../../src/storage';
+import { deleteSession, getSession } from '../../src/storage';
 import { colors, formatClock, scoreColor, spacing, type } from '../../src/theme';
 import type { Session } from '../../src/types';
 
@@ -63,6 +63,20 @@ export default function ResultScreen() {
     );
   }
 
+  const confirmDelete = () => {
+    Alert.alert(`Delete "${session.word}"?`, 'This talk and its recording will be removed from your phone.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          await deleteSession(session.id);
+          router.replace('/history');
+        },
+      },
+    ]);
+  };
+
   const { score, coach } = session;
   const coachTotal = coach ? coach.coherence + coach.structure + coach.relevance : null;
   const date = new Date(session.createdAt).toLocaleDateString(undefined, {
@@ -73,6 +87,21 @@ export default function ResultScreen() {
 
   return (
     <View style={styles.screen}>
+      <Stack.Screen
+        options={{
+          headerRight: () => (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Delete talk"
+              hitSlop={8}
+              onPress={confirmDelete}
+              style={({ pressed }) => pressed && { opacity: 0.6 }}
+            >
+              <Ionicons name="trash-outline" size={24} color={colors.danger} />
+            </Pressable>
+          ),
+        }}
+      />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
           <View style={styles.tileWrap}>
@@ -201,6 +230,8 @@ export default function ResultScreen() {
             </Card>
           )}
         </View>
+
+        <Button title="Delete talk" variant="danger" icon="trash-outline" onPress={confirmDelete} />
       </ScrollView>
 
       <BottomActions style={[styles.footer, { paddingBottom: insets.bottom + spacing.sm }]}>

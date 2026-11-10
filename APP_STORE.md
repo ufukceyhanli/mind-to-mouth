@@ -10,7 +10,7 @@ Connect. Work through the second list before pressing Submit.
 | 5.1.1(i) Privacy policy | Link in App Store Connect **and** inside the app | `PRIVACY.md`, linked from Settings → About and from the consent screen (`src/links.ts`) |
 | 5.1.1(ii) Permission | Consent for data collection, easy to withdraw | Consent screen before the first recording (`app/practice.tsx`), Withdraw in Settings → Privacy |
 | 5.1.2(i) Third-party AI | Disclose where personal data goes, including third-party AI, and get explicit permission first | Consent screen names the service and what is sent; nothing is recorded or uploaded until "Agree and continue" |
-| 5.1.1(i) Deletion | Explain retention and how to delete | Long-press delete in Talks, "Delete all talks and recordings" in Settings, policy text |
+| 5.1.1(i) Deletion | Explain retention and how to delete | Swipe-left or long-press delete in Talks, "Delete talk" on a talk's screen, "Delete all talks and recordings" in Settings, policy text |
 | 5.1.1(v) Account deletion | An app that lets people create an account must let them delete it in the app | Settings → Account → Delete account, confirmed, calls the `delete_user` function in `supabase/schema.sql`, which removes the user and all server data |
 | 4.8 Sign in with Apple | Offered whenever a third-party login is offered; equivalent, privacy-respecting | Native Sign in with Apple button on the auth screen (`expo-apple-authentication`), email relay accepted; accounts are optional so no screen is gated on login |
 | 5.1.1(ii) Account optional | Do not require account creation unless the app's core features need it | Every feature works signed out; the auth screen says so and Settings shows "Sign in or create account" only as an option |

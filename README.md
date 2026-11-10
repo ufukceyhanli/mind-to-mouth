@@ -84,7 +84,7 @@ app/                 Expo Router screens
   (tabs)/index.tsx   home: streak, today's talk hero card, recent talks
   practice.tsx       word → countdown → recording → processing
   result/[id].tsx    score breakdown, coach notes, transcript
-  (tabs)/history.tsx all talks (long-press to delete)
+  (tabs)/history.tsx all talks (swipe left or long-press to delete)
   (tabs)/settings.tsx account, API key, model ids, timing options, privacy
   auth/index.tsx     sign in / create account (Apple, email + password, email link)
   auth/reset.tsx     pick a new password after a reset link
