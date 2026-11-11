@@ -7,9 +7,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { providerLabel, useAuth } from '../src/auth/AuthProvider';
 import { describeAuthError } from '../src/auth/supabase';
-import { DataSharingNotice } from '../src/components/DataSharingNotice';
 import { Avatar, Button, Card, Link, Muted, SectionTitle } from '../src/components/ui';
-import { PRIVACY_POLICY_URL, SUPPORT_URL } from '../src/links';
+import { PRIVACY_POLICY_URL, SPEECH_SERVICE_NAME, SUPPORT_URL } from '../src/links';
 import {
   deleteAllSessions,
   getDataSharingConsent,
@@ -21,9 +20,11 @@ import { colors, spacing, type } from '../src/theme';
 const appVersion = Constants.expoConfig?.version ?? '1.0.0';
 
 /**
- * Who you are and what the app holds about you: the account, the privacy
- * choices and the links behind them. Opened from the avatar on the Today tab.
- * Everything that tunes practice itself stays in Settings.
+ * Who you are and what the app holds about you: the account, then an About
+ * card with the policy and contact links, the recording consent (and its
+ * withdrawal) and the delete-everything button. The full plain-language
+ * disclosure is shown once, before the first recording. Opened from the
+ * avatar on the Today tab. Everything that tunes practice stays in Settings.
  */
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -164,15 +165,19 @@ export default function ProfileScreen() {
       </View>
 
       <View>
-        <SectionTitle>Privacy</SectionTitle>
-        <Card style={{ gap: spacing.lg }}>
-          <DataSharingNotice />
+        <SectionTitle>About</SectionTitle>
+        <Card style={{ gap: spacing.md }}>
+          <Link onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)}>Privacy policy</Link>
+          <Link onPress={() => void Linking.openURL(SUPPORT_URL)}>Contact and report a problem</Link>
+          <View style={styles.divider} />
+          {/* App Store guideline 5.1.1(ii): consent must be as easy to withdraw
+              as it was to give, so the withdrawal stays one tap from here. */}
           <View style={styles.row}>
             <View style={{ flex: 1 }}>
               <Text style={styles.label}>Sending recordings</Text>
               <Muted style={styles.hint}>
                 {consentDate
-                  ? `Agreed on ${new Date(consentDate).toLocaleDateString()}.`
+                  ? `Agreed on ${new Date(consentDate).toLocaleDateString()}. Recordings go to ${SPEECH_SERVICE_NAME} for transcription and coaching.`
                   : 'Not agreed yet. You will be asked before your next talk.'}
               </Muted>
             </View>
@@ -185,14 +190,6 @@ export default function ProfileScreen() {
             disabled={talkCount === 0}
             onPress={deleteEverything}
           />
-        </Card>
-      </View>
-
-      <View>
-        <SectionTitle>About</SectionTitle>
-        <Card style={{ gap: spacing.md }}>
-          <Link onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)}>Privacy policy</Link>
-          <Link onPress={() => void Linking.openURL(SUPPORT_URL)}>Contact and report a problem</Link>
           <Muted style={styles.hint}>
             Version {appVersion}. Feedback from the coach is AI-generated and can be wrong.
           </Muted>
@@ -207,7 +204,8 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: spacing.md, paddingTop: spacing.md, gap: spacing.lg },
   identity: { alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.md },
   email: { ...type.h3, color: colors.text, textAlign: 'center' },
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.md },
+  divider: { height: 1, backgroundColor: colors.border },
   label: { ...type.label, color: colors.text },
   hint: { ...type.caption, marginTop: 8 },
 });

@@ -21,7 +21,8 @@ import {
   SectionHeader,
   SectionTitle,
 } from '../../src/components/ui';
-import { SUPPORT_URL } from '../../src/links';
+import { showActionMenu } from '../../src/actionMenu';
+import { REPORT_PROBLEM_URL } from '../../src/links';
 import { deleteSession, getSession } from '../../src/storage';
 import { colors, formatClock, scoreColor, spacing, type } from '../../src/theme';
 import type { Session } from '../../src/types';
@@ -77,6 +78,11 @@ export default function ResultScreen() {
     ]);
   };
 
+  // The header menu holds everything that acts on the talk as a whole. Only
+  // Delete for now; new entries go in this list.
+  const openMenu = () =>
+    showActionMenu([{ label: 'Delete talk', destructive: true, onPress: confirmDelete }]);
+
   const { score, coach } = session;
   const coachTotal = coach ? coach.coherence + coach.structure + coach.relevance : null;
   const date = new Date(session.createdAt).toLocaleDateString(undefined, {
@@ -92,12 +98,12 @@ export default function ResultScreen() {
           headerRight: () => (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Delete talk"
+              accessibilityLabel="More options"
               hitSlop={8}
-              onPress={confirmDelete}
+              onPress={openMenu}
               style={({ pressed }) => pressed && { opacity: 0.6 }}
             >
-              <Ionicons name="trash-outline" size={24} color={colors.danger} />
+              <Ionicons name="ellipsis-horizontal" size={24} color={colors.text} />
             </Pressable>
           ),
         }}
@@ -203,7 +209,7 @@ export default function ResultScreen() {
                 <Text style={styles.feedbackTitle}>Tomorrow’s drill</Text>
                 <Body>{coach.nextDrill}</Body>
               </View>
-              <Link onPress={() => void Linking.openURL(SUPPORT_URL)} style={styles.report}>
+              <Link onPress={() => void Linking.openURL(REPORT_PROBLEM_URL)} style={styles.report}>
                 This feedback is AI-generated. Report a problem with it
               </Link>
             </Card>

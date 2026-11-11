@@ -24,6 +24,16 @@ On first launch, open **Settings** (gear icon) and paste your NVIDIA API key
 (`nvapi-…`, from *Get API Key* on any model page at build.nvidia.com). It is
 stored in the iOS keychain and only ever sent to `integrate.api.nvidia.com`.
 
+## Website
+
+`website/` is the public site (<https://mind-to-mouth.web.app>): a landing
+page, the privacy policy and a support page, served by Firebase Hosting. The
+privacy page is generated from `PRIVACY.md` by `npm run website:build`, so edit
+the Markdown, not the HTML. A GitHub Actions workflow deploys it on every push to
+`main` (`.github/workflows/website.yml`); `npm run website:deploy` does the same
+from a signed-in machine. The one-time
+setup is in `website/README.md`.
+
 ## The flow
 
 1. **Word** – a random prompt from ~250 words (objects, ideas, situations, a few oddballs). Recently used words are avoided.
