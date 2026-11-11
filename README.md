@@ -24,6 +24,26 @@ On first launch, open **Settings** (gear icon) and paste your NVIDIA API key
 (`nvapi-…`, from *Get API Key* on any model page at build.nvidia.com). It is
 stored in the iOS keychain and only ever sent to `integrate.api.nvidia.com`.
 
+## Free plan and Plus
+
+The app is free for three scored talks a week (Monday to Sunday), each up to
+three minutes. **Mind to Mouth Plus**, an App Store subscription at USD 4.90 a
+month, removes the weekly limit, turns on the pronunciation check and allows
+talks up to ten minutes. The numbers live in `src/plan/limits.ts`; change them
+there and the app, the paywall and the settings hints follow (the website and
+`PRIVACY.md` are worded by hand).
+
+- `src/plan/PlanProvider.tsx` talks to StoreKit through `expo-iap`: loads the
+  product, buys, restores, and answers "is Plus active". No server is involved.
+- `src/plan/usage.ts` keeps the timestamps of scored talks in the keychain.
+- `app/plus.tsx` is the paywall, opened from Today, Profile → Plan, Settings and
+  the result screen.
+- `expo-iap` is native code, so the app needs a development or release build;
+  in Expo Go, on Android and in any build without the module, nobody is held
+  to the free limits and the Plan section is hidden.
+- `EXPO_PUBLIC_PLUS_UNLOCKED=1` in `.env` unlocks Plus for personal builds.
+  The App Store Connect setup is step 5 in `APP_STORE.md`.
+
 ## Website
 
 `website/` is the public site (<https://mind-to-mouth.web.app>): a landing

@@ -1,11 +1,13 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SessionCard } from '../../src/components/SessionRow';
 import { useAuth } from '../../src/auth/AuthProvider';
+import { usePlan } from '../../src/plan/PlanProvider';
+import { useAllowance } from '../../src/plan/useAllowance';
 import {
   Avatar,
   Badge,
@@ -31,6 +33,8 @@ import type { Session } from '../../src/types';
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { session } = useAuth();
+  const plan = usePlan();
+  const allowance = useAllowance();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [hasKey, setHasOpenAIKey] = useState<boolean | null>(null);
 
@@ -58,6 +62,9 @@ export default function HomeScreen() {
       ? Math.round(lastSeven.reduce((sum, s) => sum + s.finalScore, 0) / lastSeven.length)
       : null;
   const best = sessions.length > 0 ? Math.max(...sessions.map((s) => s.finalScore)) : null;
+  // On the free plan the week's talks can run out; the hero then leads to Plus.
+  const onFreePlan = plan.ready && !plan.isPlus && allowance.loaded;
+  const outOfTalks = onFreePlan && allowance.left === 0;
 
   return (
     <ScrollView
@@ -84,19 +91,31 @@ export default function HomeScreen() {
       <HeroCard
         style={styles.pad}
         disabled={hasKey === null}
-        accessibilityLabel={hasKey === false ? 'Add your access key' : 'Start today’s talk'}
-        onPress={() => router.push(hasKey === false ? '/settings' : '/practice')}
+        accessibilityLabel={
+          hasKey === false ? 'Add your access key' : outOfTalks ? 'See Mind to Mouth Plus' : 'Start today’s talk'
+        }
+        onPress={() => router.push(hasKey === false ? '/settings' : outOfTalks ? '/plus' : '/practice')}
       >
         <View style={styles.heroRow}>
           <View style={styles.heroText}>
             <Text style={styles.heroTitle}>
-              {doneToday ? 'Practise again' : 'Today’s talk'}
+              {outOfTalks ? 'Free talks used' : doneToday ? 'Practise again' : 'Today’s talk'}
             </Text>
-            <Text style={styles.heroSubtitle}>One word. Two minutes. No script.</Text>
+            <Text style={styles.heroSubtitle}>
+              {outOfTalks
+                ? `New ones ${allowance.resets}. Plus has no limit.`
+                : 'One word. Two minutes. No script.'}
+            </Text>
             <View style={styles.heroFooter}>
-              <Badge>{doneToday ? 'Practised today' : 'Not yet today'}</Badge>
+              <Badge>
+                {onFreePlan
+                  ? `${allowance.left} of ${allowance.total} free talks left`
+                  : doneToday
+                    ? 'Practised today'
+                    : 'Not yet today'}
+              </Badge>
               <Text style={styles.heroLink}>
-                {hasKey === false ? 'Add your API key' : 'Start now'}{' '}
+                {hasKey === false ? 'Add your API key' : outOfTalks ? 'Get unlimited talks' : 'Start now'}{' '}
                 <Ionicons name="arrow-forward" size={18} color={colors.white} />
               </Text>
             </View>
@@ -104,6 +123,24 @@ export default function HomeScreen() {
           <MicDisc size={116} style={styles.heroDisc} />
         </View>
       </HeroCard>
+
+      {onFreePlan && hasKey !== false && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="See Mind to Mouth Plus"
+          onPress={() => router.push('/plus')}
+          style={({ pressed }) => [styles.pad, styles.plusRow, pressed && { opacity: 0.85 }]}
+        >
+          <Ionicons name="sparkles" size={20} color={colors.accent} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.plusTitle}>Unlimited talks with Plus</Text>
+            <Muted style={type.caption}>
+              Free plan: {allowance.total} talks a week. New ones {allowance.resets}.
+            </Muted>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.muted} />
+        </Pressable>
+      )}
 
       {hasKey === false && (
         <Card style={[styles.pad, styles.setupCard]}>
@@ -197,6 +234,16 @@ const styles = StyleSheet.create({
   heroLink: { ...type.h3, fontSize: 18, color: colors.white },
   heroDisc: { alignSelf: 'center' },
   setupCard: { borderWidth: 1.5, borderColor: colors.accentLight },
+  plusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: colors.accentSoft,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+  },
+  plusTitle: { ...type.label, color: colors.text },
   carousel: { paddingHorizontal: spacing.md, gap: spacing.md },
   step: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   stepNumber: {

@@ -117,6 +117,7 @@ function layout({ title, description, path, body, wide = false }) {
   const fullTitle = path === '/' ? `${SITE.name} – speak for two minutes, every day` : `${title} – ${SITE.name}`;
   const nav = [
     ['/', 'Home'],
+    ['/#pricing', 'Pricing'],
     ['/support', 'Support'],
     ['/privacy', 'Privacy'],
   ]
@@ -184,7 +185,7 @@ const pages = [
     path: '/',
     title: 'Home',
     description:
-      'Mind to Mouth is a daily speaking drill for iPhone. One random word, two minutes of talking, a score and coaching notes. Recordings stay on your phone.',
+      'Mind to Mouth is a daily speaking drill for iPhone. One random word, two minutes of talking, a score and coaching notes. Free for three talks a week; Plus is $4.90 a month. Recordings stay on your phone.',
     body: readFileSync(join(here, 'pages', 'index.html'), 'utf8'),
     wide: true,
   },

@@ -7,6 +7,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider, useAuth } from '../src/auth/AuthProvider';
+import { PlanProvider } from '../src/plan/PlanProvider';
 import { colors, fonts } from '../src/theme';
 
 SplashScreen.preventAutoHideAsync();
@@ -14,7 +15,9 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <RootNavigator />
+      <PlanProvider>
+        <RootNavigator />
+      </PlanProvider>
     </AuthProvider>
   );
 }
@@ -73,6 +76,10 @@ function RootNavigator() {
               options={{ title: '', headerBackTitle: 'Back' }}
             />
             <Stack.Screen name="profile" options={{ title: 'Profile', headerBackTitle: 'Back' }} />
+            <Stack.Screen
+              name="plus"
+              options={{ title: '', presentation: 'modal', headerBackTitle: 'Back' }}
+            />
             <Stack.Screen
               name="auth/reset"
               options={{ title: 'New password', headerBackTitle: 'Back' }}

@@ -17,6 +17,11 @@ export const REPORT_PROBLEM_URL = SUPPORT_EMAIL
   ? `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Mind to Mouth: coach feedback')}`
   : SUPPORT_URL;
 
+/** Apple's standard licence agreement, which is the app's terms of use. Also goes in the App Store description. */
+export const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
+/** Where a subscription bought through Apple is managed and cancelled. */
+export const MANAGE_SUBSCRIPTIONS_URL = 'https://apps.apple.com/account/subscriptions';
+
 /**
  * How the consent screen, Profile and the policy describe where recordings go.
  * Deliberately a category, not a vendor name: Apple asks for disclosure of

@@ -11,7 +11,11 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { router } from 'expo-router';
+
 import { Button, Card, Chip, Link, Muted, PageHeader, SectionTitle } from '../../src/components/ui';
+import { usePlan } from '../../src/plan/PlanProvider';
+import { FREE_MAX_SECONDS } from '../../src/plan/limits';
 import {
   getStoredNvidiaKey,
   hasBundledNvidiaKey,
@@ -28,6 +32,7 @@ const MAX_OPTIONS = [180, 300, 600];
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
+  const plan = usePlan();
   const [apiKey, setApiKey] = useState('');
   const [reveal, setReveal] = useState(false);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
@@ -150,18 +155,27 @@ export default function SettingsScreen() {
               value={settings.maxSeconds}
               format={(v) => `${v / 60} min`}
               onChange={(maxSeconds) => setSettings((s) => ({ ...s, maxSeconds }))}
+              hint={
+                plan.isPlus
+                  ? undefined
+                  : `On the free plan talks stop at ${FREE_MAX_SECONDS / 60} minutes. Plus uses the length you pick here.`
+              }
             />
             <View>
               <View style={styles.switchRow}>
                 <Text style={[styles.label, { marginBottom: 0 }]}>Pronunciation check</Text>
-                <Switch
-                  value={settings.checkPronunciation}
-                  onValueChange={(checkPronunciation) =>
-                    setSettings((s) => ({ ...s, checkPronunciation }))
-                  }
-                  trackColor={{ true: colors.accent, false: colors.surfaceAlt }}
-                  thumbColor={colors.white}
-                />
+                {plan.isPlus ? (
+                  <Switch
+                    value={settings.checkPronunciation}
+                    onValueChange={(checkPronunciation) =>
+                      setSettings((s) => ({ ...s, checkPronunciation }))
+                    }
+                    trackColor={{ true: colors.accent, false: colors.surfaceAlt }}
+                    thumbColor={colors.white}
+                  />
+                ) : (
+                  <Link onPress={() => router.push('/plus')}>Part of Plus</Link>
+                )}
               </View>
               <Muted style={styles.hint}>
                 After scoring, listens to the talk again for words worth practising, with the
@@ -234,12 +248,14 @@ function OptionRow({
   value,
   format,
   onChange,
+  hint,
 }: {
   label: string;
   options: number[];
   value: number;
   format: (v: number) => string;
   onChange: (v: number) => void;
+  hint?: string;
 }) {
   return (
     <View>
@@ -254,6 +270,7 @@ function OptionRow({
           />
         ))}
       </View>
+      {hint && <Muted style={styles.hint}>{hint}</Muted>}
     </View>
   );
 }

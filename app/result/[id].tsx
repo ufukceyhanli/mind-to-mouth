@@ -23,6 +23,7 @@ import {
 } from '../../src/components/ui';
 import { showActionMenu } from '../../src/actionMenu';
 import { REPORT_PROBLEM_URL } from '../../src/links';
+import { usePlan } from '../../src/plan/PlanProvider';
 import { deleteSession, getSession } from '../../src/storage';
 import { colors, formatClock, scoreColor, spacing, type } from '../../src/theme';
 import type { Session } from '../../src/types';
@@ -30,6 +31,7 @@ import type { Session } from '../../src/types';
 export default function ResultScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
+  const plan = usePlan();
   // undefined = loading, null = not found
   const [session, setSession] = useState<Session | null | undefined>(() =>
     id ? undefined : null,
@@ -157,6 +159,19 @@ export default function ResultScreen() {
               session={session}
               onReport={(pronunciation) => setSession((s) => (s ? { ...s, pronunciation } : s))}
             />
+          </View>
+        )}
+
+        {plan.canPurchase && !plan.isPlus && session.pronunciation?.status === 'off' && (
+          <View>
+            <SectionTitle>Worth a listen</SectionTitle>
+            <Card style={{ gap: spacing.sm }}>
+              <Muted>
+                With Plus, the coach listens again for words worth a second try and plays them next
+                to your own attempt.
+              </Muted>
+              <Link onPress={() => router.push('/plus')}>See Plus</Link>
+            </Card>
           </View>
         )}
 
