@@ -2,6 +2,7 @@
 // PRIVACY.md, so the policy has one source and the app, the App Store listing
 // and the website always show the same text. No dependencies: run with
 // `node website/build.mjs` (also run by `firebase deploy` as a predeploy step).
+import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,6 +10,10 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, '..');
 const outDir = join(here, 'public');
+
+// styles.css is cached for a day (firebase.json), so its link carries a hash of
+// the file: a changed stylesheet gets a new URL and old copies are never served.
+const stylesHash = createHash('sha256').update(readFileSync(join(outDir, 'styles.css'))).digest('hex').slice(0, 8);
 
 const SITE = {
   name: 'Mind to Mouth',
@@ -110,7 +115,7 @@ function layout({ title, description, path, body, wide = false }) {
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/styles.css?v=${stylesHash}">
 </head>
 <body>
   <header class="site-header">
