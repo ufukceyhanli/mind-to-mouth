@@ -337,6 +337,42 @@ export function Badge({
   );
 }
 
+/** Round profile disc with the account's initial; the way into the Profile screen. */
+export function Avatar({
+  email,
+  size = 44,
+  onPress,
+  style,
+}: {
+  email: string | null;
+  size?: number;
+  onPress?: () => void;
+  style?: StyleProp<ViewStyle>;
+}) {
+  const initial = email?.trim().charAt(0).toUpperCase() || '';
+  const disc = (
+    <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2 }, style]}>
+      {initial ? (
+        <Text style={[styles.avatarText, { fontSize: Math.round(size * 0.44) }]}>{initial}</Text>
+      ) : (
+        <Ionicons name="person" size={Math.round(size * 0.5)} color={colors.onAccent} />
+      )}
+    </View>
+  );
+  if (!onPress) return disc;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Profile"
+      onPress={onPress}
+      hitSlop={8}
+      style={({ pressed }) => pressed && styles.buttonPressed}
+    >
+      {disc}
+    </Pressable>
+  );
+}
+
 /** Round microphone emblem with soft concentric rings; the app's "audio" mark. */
 export function MicDisc({ size = 112, style }: { size?: number; style?: StyleProp<ViewStyle> }) {
   const inner = size * 0.56;
@@ -490,6 +526,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
   },
   badgeText: { ...type.captionBold, fontSize: 14, color: colors.white, fontVariant: ['tabular-nums'] },
+  avatar: { backgroundColor: colors.hero, alignItems: 'center', justifyContent: 'center' },
+  avatarText: { fontFamily: fonts.black, color: colors.onAccent },
   micOuter: { backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' },
   micMid: { backgroundColor: '#FBC9A6', alignItems: 'center', justifyContent: 'center' },
   micInner: { backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
