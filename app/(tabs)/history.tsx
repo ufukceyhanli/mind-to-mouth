@@ -1,10 +1,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, FlatList, StyleSheet, Text, View } from 'react-native';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { SessionRow } from '../../src/components/SessionRow';
+import { SwipeableSessionRow } from '../../src/components/SwipeableSessionRow';
 import { Muted, PageHeader } from '../../src/components/ui';
 import { deleteSession, loadSessions } from '../../src/storage';
 import { colors, spacing, type } from '../../src/theme';
@@ -26,19 +26,12 @@ export default function HistoryScreen() {
 
   useFocusEffect(reload);
 
-  const confirmDelete = (session: Session) => {
-    Alert.alert(`Delete "${session.word}"?`, 'This talk will be removed from your history.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          await deleteSession(session.id);
-          setSessions((list) => list.filter((s) => s.id !== session.id));
-        },
-      },
-    ]);
-  };
+  // The row asks for confirmation (or takes a full swipe as the answer) and
+  // animates out before calling this.
+  const removeSession = useCallback(async (session: Session) => {
+    await deleteSession(session.id);
+    setSessions((list) => list.filter((s) => s.id !== session.id));
+  }, []);
 
   return (
     <FlatList
@@ -50,14 +43,14 @@ export default function HistoryScreen() {
       data={sessions}
       keyExtractor={(s) => s.id}
       renderItem={({ item }) => (
-        <SessionRow session={item} onLongPress={() => confirmDelete(item)} />
+        <SwipeableSessionRow session={item} onDelete={() => removeSession(item)} />
       )}
       ListHeaderComponent={
         <PageHeader
           title="Talks"
           subtitle={
             sessions.length > 0
-              ? `${sessions.length} talk${sessions.length === 1 ? '' : 's'}. Long-press to delete.`
+              ? `${sessions.length} talk${sessions.length === 1 ? '' : 's'}. Swipe left to delete.`
               : undefined
           }
           style={styles.header}

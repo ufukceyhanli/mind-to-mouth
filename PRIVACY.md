@@ -32,7 +32,7 @@ You can also turn off microphone access for the app in iOS Settings. The app can
 
 Recordings, transcripts and scores stay on your phone until you delete them. You can:
 
-- delete a single talk by long-pressing it in **Talks**;
+- delete a single talk by swiping left on it (or long-pressing it) in **Talks**, or with **Delete talk** on the talk's own screen;
 - delete every talk, recording and score with **Settings → Privacy → Delete all talks and recordings**;
 - delete the app, which removes everything it stored on the phone.
 
