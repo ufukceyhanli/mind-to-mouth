@@ -48,7 +48,9 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "website:build": "node website/build.mjs",
+    "website:deploy": "cd website && npx firebase-tools deploy --only hosting"
   },
   "private": true
 }

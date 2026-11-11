@@ -7,10 +7,10 @@ Connect. Work through the second list before pressing Submit.
 
 | Guideline | What it asks | Where it is handled |
 | --- | --- | --- |
-| 5.1.1(i) Privacy policy | Link in App Store Connect **and** inside the app | `PRIVACY.md`, linked from Profile → About and from the consent screen (`src/links.ts`) |
-| 5.1.1(ii) Permission | Consent for data collection, easy to withdraw | Consent screen before the first recording (`app/practice.tsx`), Withdraw in Profile → Privacy |
+| 5.1.1(i) Privacy policy | Link in App Store Connect **and** inside the app | `PRIVACY.md`, published at <https://mind-to-mouth.web.app/privacy> by the site in `website/`, linked from Profile → About and from the consent screen (`src/links.ts`) |
+| 5.1.1(ii) Permission | Consent for data collection, easy to withdraw | Consent screen before the first recording (`app/practice.tsx`), Withdraw in Profile → About |
 | 5.1.2(i) Third-party AI | Disclose where personal data goes, including third-party AI, and get explicit permission first | Consent screen names the service and what is sent; nothing is recorded or uploaded until "Agree and continue" |
-| 5.1.1(i) Deletion | Explain retention and how to delete | Swipe-left or long-press delete in Talks, "Delete talk" on a talk's screen, "Delete all talks and recordings" in Settings, policy text |
+| 5.1.1(i) Deletion | Explain retention and how to delete | Swipe-left or long-press delete in Talks, "Delete talk" on a talk's screen, "Delete all talks and recordings" in Profile → About, policy text |
 | 5.1.1(v) Account deletion | An app that lets people create an account must let them delete it in the app | Profile → Account → Delete account, confirmed, calls the `delete_user` function in `supabase/schema.sql`, which removes the user and all server data |
 | 4.8 Sign in with Apple | Offered whenever a third-party login is offered; equivalent, privacy-respecting | Native "Continue with Apple" button (`expo-apple-authentication`) next to Google on the create-account and sign-in screens, email relay accepted |
 | 5.1.1(ii) Account required | Account creation may only be required when the app's core features need it | The app requires an account before anything else (welcome → create account or sign in). Be ready to explain in Review Notes why the core features need it, or Apple may push back |
@@ -63,10 +63,14 @@ Connect. Work through the second list before pressing Submit.
    - Authentication → Emails: the built-in sender allows only a handful of
      emails per hour and lands in spam often. Before launch, add a custom SMTP
      provider (Resend, Postmark, ...) and set the sender to a domain you own.
-5. **Privacy policy URL**: `https://github.com/ufukceyhanli/mind-to-mouth/blob/main/PRIVACY.md`
-   (the repo must stay public, or move the page to a site you control and update
-   `src/links.ts`).
-6. **Support URL**: `https://github.com/ufukceyhanli/mind-to-mouth/issues`.
+5. **Privacy policy URL**: `https://mind-to-mouth.web.app/privacy`. The page is
+   the static site in `website/`, deployed to Firebase Hosting by the GitHub
+   Actions workflow on every push to `main`; `website/README.md` has the
+   one-time console setup (Firebase project plus one GitHub secret). Deploy it
+   **before** submitting: App Review opens the link.
+6. **Support URL**: `https://mind-to-mouth.web.app/support`. The same page
+   explains account deletion (`/support#delete-account`), which Google Play
+   also asks for if the app ever ships there.
 7. **App Privacy (nutrition label)**: answer "Yes, we collect data". Add
    **Audio Data** under User Content: used for App Functionality, not linked to
    the user's identity, not used for tracking. Add **Email Address** (Contact
@@ -89,7 +93,7 @@ Connect. Work through the second list before pressing Submit.
     > No account is needed. Tap "Today's talk", agree to the data-sharing notice,
     > allow the microphone, and speak for about a minute. The recording is sent
     > to NVIDIA's AI model service for transcription and coaching; the consent
-    > screen and Profile → Privacy explain this and allow withdrawal. Scoring
+    > screen explains this and Profile → About allows withdrawal. Scoring
     > needs a network connection. Feedback is AI-generated and labelled as such.
     > An account is required; sign in with Apple, Google or email on the first
     > screen. Demo account: EMAIL / PASSWORD. Delete account is under Profile (avatar on the Today tab) → Account.

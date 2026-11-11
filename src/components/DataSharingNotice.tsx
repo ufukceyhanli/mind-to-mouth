@@ -10,7 +10,7 @@ const POINTS: { icon: IconName; title: string; body: string }[] = [
   {
     icon: 'mic-outline',
     title: 'Your talk is recorded',
-    body: 'The recording and the scores stay on this phone. Delete any talk from Talks, or everything from Settings.',
+    body: 'The recording and the scores stay on this phone. Delete any talk from Talks, or everything from Profile.',
   },
   {
     icon: 'cloud-upload-outline',
@@ -25,9 +25,10 @@ const POINTS: { icon: IconName; title: string; body: string }[] = [
 ];
 
 /**
- * The plain-language disclosure shown before the first recording and again
- * in Settings. Apple asks for explicit permission before personal data goes
- * to a third-party AI service, so this is where the user grants it.
+ * The plain-language disclosure shown before the first recording. Apple asks
+ * for explicit permission before personal data goes to a third-party AI
+ * service, so this is where the user grants it. Withdrawal and the policy
+ * link live under Profile → About afterwards.
  */
 export function DataSharingNotice() {
   return (

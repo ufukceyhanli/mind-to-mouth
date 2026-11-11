@@ -1,0 +1,47 @@
+# Deploys website/ to Firebase Hosting (https://mind-to-mouth.web.app).
+#
+# No local tooling needed. One-time setup, all in the browser:
+#   1. Create the Firebase project (id "mind-to-mouth") at console.firebase.google.com.
+#   2. Project settings → Service accounts → "Generate new private key" (downloads a JSON file).
+#   3. GitHub → repo Settings → Secrets and variables → Actions → New repository secret:
+#      name FIREBASE_SERVICE_ACCOUNT, value = the whole JSON file.
+# Then every push to main that touches the site deploys it, and the "Run workflow"
+# button on the Actions tab deploys on demand. See website/README.md.
+name: Website
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'website/**'
+      - 'PRIVACY.md'
+      - '.github/workflows/website.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: website-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to Firebase Hosting
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build the pages
+        run: node website/build.mjs
+
+      - name: Deploy
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: mind-to-mouth
+          channelId: live
+          entryPoint: website

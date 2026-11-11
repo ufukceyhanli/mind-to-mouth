@@ -12,7 +12,6 @@ import {
   Button,
   Card,
   HeroCard,
-  IconButton,
   MicDisc,
   Muted,
   PageHeader,
@@ -77,11 +76,6 @@ export default function HomeScreen() {
               <Ionicons name="flame" size={18} color={colors.accent} />
               <Text style={styles.streakText}>{streak}</Text>
             </View>
-            <IconButton
-              icon="settings-outline"
-              accessibilityLabel="Settings"
-              onPress={() => router.push('/settings')}
-            />
             <Avatar email={session?.user.email ?? null} onPress={() => router.push('/profile')} />
           </>
         }
