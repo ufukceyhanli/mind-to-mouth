@@ -34,6 +34,9 @@ import {
   getCoachFeedback,
   transcribeChunks,
 } from '../src/nvidia';
+import { usePlan } from '../src/plan/PlanProvider';
+import { effectiveMaxSeconds, freeTalksLeft } from '../src/plan/limits';
+import { loadUsage, recordTalk } from '../src/plan/usage';
 import { persistRecording } from '../src/recordings';
 import { blendScore, scoreTalk, tokenize } from '../src/scoring';
 import {
@@ -96,6 +99,12 @@ const WAV_RECORDING: RecordingOptions = {
 export default function PracticeScreen() {
   useKeepAwake();
   const insets = useSafeAreaInsets();
+  const plan = usePlan();
+  // Read inside callbacks that must not re-run when the plan changes.
+  const planRef = useRef(plan);
+  useEffect(() => {
+    planRef.current = plan;
+  }, [plan]);
 
   const recorder = useAudioRecorder(WAV_RECORDING);
   const recorderState = useAudioRecorderState(recorder, 100);
@@ -135,15 +144,24 @@ export default function PracticeScreen() {
   }, []);
 
   useEffect(() => {
+    // Wait until it is known whether this is a Plus subscriber.
+    if (!plan.ready) return;
     cancelledRef.current = false;
     (async () => {
-      const [loadedSettings, sessions, apiKey, consent] = await Promise.all([
+      const [loadedSettings, sessions, apiKey, consent, usage] = await Promise.all([
         loadSettings(),
         loadSessions(),
         getNvidiaKey(),
         getDataSharingConsent(),
+        loadUsage(),
       ]);
       if (cancelledRef.current) return;
+      // The free plan's weekly talks are used up: show Plus instead of a word.
+      // Today already routes there; this covers every other way in.
+      if (!planRef.current.isPlus && freeTalksLeft(usage, new Date()) === 0) {
+        router.replace('/plus');
+        return;
+      }
       apiKeyRef.current = apiKey;
       recentWordsRef.current = sessions.slice(0, 30).map((s) => s.word);
       setSettings(loadedSettings);
@@ -158,7 +176,7 @@ export default function PracticeScreen() {
     return () => {
       cancelledRef.current = true;
     };
-  }, [beginSession]);
+  }, [beginSession, plan.ready]);
 
   const agreeToSharing = useCallback(async () => {
     await setDataSharingConsent(true);
@@ -287,12 +305,18 @@ export default function PracticeScreen() {
           audioFile,
           // Checked lazily by the result screen so the score is not held up.
           pronunciation: {
-            status: currentSettings.checkPronunciation && audioFile ? 'pending' : 'off',
+            // A Plus feature: it doubles the audio sent for each talk.
+            status:
+              planRef.current.isPlus && currentSettings.checkPronunciation && audioFile
+                ? 'pending'
+                : 'off',
             issues: [],
             error: null,
           },
         };
         await saveSession(session);
+        // Counts towards the free plan's week only once a talk has been scored.
+        await recordTalk();
 
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         router.replace({ pathname: '/result/[id]', params: { id: session.id } });
@@ -349,6 +373,9 @@ export default function PracticeScreen() {
 
   // ---- Timers --------------------------------------------------------------
 
+  // Free talks auto-stop sooner than the length picked in Settings.
+  const maxSeconds = effectiveMaxSeconds(settings, plan.isPlus);
+
   useEffect(() => {
     if (phase !== 'reveal') return;
     const id = setTimeout(() => {
@@ -371,12 +398,12 @@ export default function PracticeScreen() {
         reachedMinRef.current = true;
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
-      if (seconds >= settings.maxSeconds) {
+      if (seconds >= maxSeconds) {
         void finishRecording();
       }
     }, 250);
     return () => clearInterval(id);
-  }, [phase, settings.minSeconds, settings.maxSeconds, finishRecording]);
+  }, [phase, settings.minSeconds, maxSeconds, finishRecording]);
 
   // ---- Render --------------------------------------------------------------
 
@@ -520,7 +547,9 @@ export default function PracticeScreen() {
           </Text>
           <Muted style={styles.centeredText}>
             {reached
-              ? 'Target reached. Land the plane whenever you like.'
+              ? `Target reached. Land the plane whenever you like.${
+                  plan.isPlus ? '' : ` Free talks stop at ${formatClock(maxSeconds)}.`
+                }`
               : `Keep going until the clock hits zero (${formatClock(settings.minSeconds)} total).`}
           </Muted>
         </View>

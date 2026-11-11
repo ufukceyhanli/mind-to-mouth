@@ -10,6 +10,8 @@ Mind to Mouth is a speaking-practice app made by Ufuk Ceyhanli, an individual de
 
 **Your account.** You need an account to use the app. When you create one, the app stores your email address (or, with Sign in with Apple or Google, the address they provide, which with Apple may be a private relay address), the time you signed up and last signed in, and an account identifier. With Sign in with Apple it also keeps the name Apple shares the first time, if you allow that. Nothing else is stored with the account: talks, recordings, transcripts and scores stay on your phone and are never uploaded to it.
 
+**Your subscription, if you have one.** Mind to Mouth Plus is bought through Apple's App Store. Apple handles the payment and holds the subscription against your Apple Account. The app only asks the App Store, on your phone, whether a subscription is active. The developer never receives your name, payment details or purchase history, and the subscription is not linked to your app account. The number of talks you have used in the current week is kept on your phone only.
+
 **Nothing else about you.** No analytics, no advertising, no tracking and no device identifiers. The app does not read your contacts, photos, location or anything else on the phone.
 
 ## What leaves your phone, and where it goes
@@ -34,7 +36,7 @@ Recordings, transcripts and scores stay on your phone until you delete them. You
 - delete every talk, recording and score with **Profile → About → Delete all talks and recordings**;
 - delete the app, which removes everything it stored on the phone.
 
-**Profile → Account → Delete account** removes your account immediately, together with everything the authentication provider holds about it. Signing out keeps the account but removes the session from the phone. Deleting the app does not delete the account; sign in again and delete it, or ask through the support page.
+**Profile → Account → Delete account** removes your account immediately, together with everything the authentication provider holds about it. Signing out keeps the account but removes the session from the phone. Deleting the app does not delete the account; sign in again and delete it, or ask through the support page. Deleting the account or the app does not cancel a Plus subscription: that is done in your App Store account settings.
 
 Apart from the account, the developer holds none of your data, so there is nothing else for the developer to delete on your behalf. Audio and text already processed by the AI provider are kept only as long as that provider needs to deliver the result and operate its service.
 

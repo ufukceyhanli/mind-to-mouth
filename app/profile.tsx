@@ -1,6 +1,6 @@
 import Constants from 'expo-constants';
 import * as Linking from 'expo-linking';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,6 +9,9 @@ import { providerLabel, useAuth } from '../src/auth/AuthProvider';
 import { describeAuthError } from '../src/auth/supabase';
 import { Avatar, Button, Card, Link, Muted, SectionTitle } from '../src/components/ui';
 import { PRIVACY_POLICY_URL, SPEECH_SERVICE_NAME, SUPPORT_URL } from '../src/links';
+import { usePlan } from '../src/plan/PlanProvider';
+import { PLUS_NAME } from '../src/plan/limits';
+import { useAllowance } from '../src/plan/useAllowance';
 import {
   deleteAllSessions,
   getDataSharingConsent,
@@ -29,6 +32,8 @@ const appVersion = Constants.expoConfig?.version ?? '1.0.0';
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const auth = useAuth();
+  const plan = usePlan();
+  const allowance = useAllowance();
   const [accountBusy, setAccountBusy] = useState<null | 'signout' | 'delete'>(null);
   const [consentDate, setConsentDate] = useState<string | null>(null);
   const [talkCount, setTalkCount] = useState(0);
@@ -67,7 +72,11 @@ export default function ProfileScreen() {
   const deleteAccount = () => {
     Alert.alert(
       'Delete your account?',
-      `${email ? `${email} and` : 'Your account and'} everything the server holds about it will be removed. This cannot be undone. Talks on this phone are not affected.`,
+      `${email ? `${email} and` : 'Your account and'} everything the server holds about it will be removed. This cannot be undone. Talks on this phone are not affected.${
+        plan.isPlus && plan.canPurchase
+          ? ` Your ${PLUS_NAME} subscription is billed by Apple and is not cancelled by this; cancel it in your App Store account settings.`
+          : ''
+      }`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -141,6 +150,30 @@ export default function ProfileScreen() {
           </Muted>
         )}
       </View>
+
+      {plan.canPurchase && (
+        <View>
+          <SectionTitle>Plan</SectionTitle>
+          <Card style={{ gap: spacing.md }}>
+            <View style={styles.row}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.label}>{plan.isPlus ? PLUS_NAME : 'Free plan'}</Text>
+                <Muted style={styles.hint}>
+                  {plan.isPlus
+                    ? 'Unlimited talks, pronunciation check and longer talks. Billed monthly by Apple.'
+                    : allowance.loaded
+                      ? `${allowance.left} of ${allowance.total} free talks left this week. New ones ${allowance.resets}.`
+                      : `${allowance.total} talks a week.`}
+                </Muted>
+              </View>
+              {plan.isPlus && <Link onPress={plan.manage}>Manage</Link>}
+            </View>
+            {!plan.isPlus && (
+              <Button title="See Plus" icon="sparkles" onPress={() => router.push('/plus')} />
+            )}
+          </Card>
+        </View>
+      )}
 
       <View>
         <SectionTitle>Account</SectionTitle>
