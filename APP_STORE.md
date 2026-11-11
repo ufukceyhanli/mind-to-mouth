@@ -41,7 +41,11 @@ Connect. Work through the second list before pressing Submit.
    - Project Settings → API: copy the project URL and the anon (publishable)
      key into `.env` as `EXPO_PUBLIC_SUPABASE_URL` and
      `EXPO_PUBLIC_SUPABASE_ANON_KEY` (and as EAS secrets for cloud builds). A
-     build without them has no Account section at all.
+     build without them has no Account section at all. **After any change to
+     `.env`, clear Metro's cache before building** (`rm -rf "$TMPDIR/metro-cache"`,
+     or `npx expo start --clear` once): `EXPO_PUBLIC_*` values are inlined at
+     transform time and the cache is keyed on source only, so a rebuild can
+     ship stale values. The cache is shared by every checkout on the machine.
    - Authentication → Providers → Email: keep it on. "Confirm email" may stay on;
      the app handles the confirmation link. Set the site URL to
      `mindtomouth://auth/callback` and add `mindtomouth://**` under Redirect URLs.
