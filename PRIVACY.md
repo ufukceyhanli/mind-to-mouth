@@ -24,7 +24,7 @@ NVIDIA processes the audio and text under its own terms and privacy policy, whic
 
 ## Your permission
 
-The app asks for your explicit agreement, in plain words, before the first recording is sent. It will not record until you agree. You can withdraw that agreement at any time in **Settings → Privacy → Withdraw**; the app will then ask again before the next talk and will not send anything until you agree again.
+The app asks for your explicit agreement, in plain words, before the first recording is sent. It will not record until you agree. You can withdraw that agreement at any time in **Profile → Privacy → Withdraw**; the app will then ask again before the next talk and will not send anything until you agree again.
 
 You can also turn off microphone access for the app in iOS Settings. The app cannot record without it.
 
@@ -33,10 +33,10 @@ You can also turn off microphone access for the app in iOS Settings. The app can
 Recordings, transcripts and scores stay on your phone until you delete them. You can:
 
 - delete a single talk by swiping left on it (or long-pressing it) in **Talks**, or with **Delete talk** on the talk's own screen;
-- delete every talk, recording and score with **Settings → Privacy → Delete all talks and recordings**;
+- delete every talk, recording and score with **Profile → Privacy → Delete all talks and recordings**;
 - delete the app, which removes everything it stored on the phone.
 
-If you have an account, **Settings → Account → Delete account** removes it immediately, together with everything the sign-in service holds about it. Signing out keeps the account but removes the session from the phone. Deleting the app does not delete the account; sign in again and delete it, or ask through the contact link below.
+If you have an account, **Profile → Account → Delete account** removes it immediately, together with everything the sign-in service holds about it. Signing out keeps the account but removes the session from the phone. Deleting the app does not delete the account; sign in again and delete it, or ask through the contact link below.
 
 Apart from an account you chose to create, the developer holds none of your data, so there is nothing else for the developer to delete on your behalf. For data already processed by NVIDIA's service, their privacy policy above describes their retention and how to contact them.
 

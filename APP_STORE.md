@@ -7,14 +7,14 @@ Connect. Work through the second list before pressing Submit.
 
 | Guideline | What it asks | Where it is handled |
 | --- | --- | --- |
-| 5.1.1(i) Privacy policy | Link in App Store Connect **and** inside the app | `PRIVACY.md`, linked from Settings → About and from the consent screen (`src/links.ts`) |
-| 5.1.1(ii) Permission | Consent for data collection, easy to withdraw | Consent screen before the first recording (`app/practice.tsx`), Withdraw in Settings → Privacy |
+| 5.1.1(i) Privacy policy | Link in App Store Connect **and** inside the app | `PRIVACY.md`, linked from Profile → About and from the consent screen (`src/links.ts`) |
+| 5.1.1(ii) Permission | Consent for data collection, easy to withdraw | Consent screen before the first recording (`app/practice.tsx`), Withdraw in Profile → Privacy |
 | 5.1.2(i) Third-party AI | Disclose where personal data goes, including third-party AI, and get explicit permission first | Consent screen names the service and what is sent; nothing is recorded or uploaded until "Agree and continue" |
 | 5.1.1(i) Deletion | Explain retention and how to delete | Swipe-left or long-press delete in Talks, "Delete talk" on a talk's screen, "Delete all talks and recordings" in Settings, policy text |
-| 5.1.1(v) Account deletion | An app that lets people create an account must let them delete it in the app | Settings → Account → Delete account, confirmed, calls the `delete_user` function in `supabase/schema.sql`, which removes the user and all server data |
+| 5.1.1(v) Account deletion | An app that lets people create an account must let them delete it in the app | Profile → Account → Delete account, confirmed, calls the `delete_user` function in `supabase/schema.sql`, which removes the user and all server data |
 | 4.8 Sign in with Apple | Offered whenever a third-party login is offered; equivalent, privacy-respecting | Native "Continue with Apple" button (`expo-apple-authentication`) next to Google on the create-account and sign-in screens, email relay accepted |
 | 5.1.1(ii) Account required | Account creation may only be required when the app's core features need it | The app requires an account before anything else (welcome → create account or sign in). Be ready to explain in Review Notes why the core features need it, or Apple may push back |
-| 1.2 / 4.7 AI content | Report mechanism and published contact | "Report a problem" link under the coach card and in Settings → About (GitHub issues); the coach prompt forbids remarks about the person |
+| 1.2 / 4.7 AI content | Report mechanism and published contact | "Report a problem" link under the coach card and in Profile → About (GitHub issues); the coach prompt forbids remarks about the person |
 | 5.1.1(ii) Purpose strings | Explain the microphone use | `NSMicrophoneUsageDescription` in `app.json` says what is recorded and that it is only sent after agreement |
 | Privacy manifest | Declare collected data and required-reason APIs | `ios.privacyManifests` in `app.json`: Audio Data (not linked), Email Address and User ID (linked to the account, app functionality, not tracking) |
 | Export compliance | `ITSAppUsesNonExemptEncryption` | `ios.config.usesNonExemptEncryption: false` (HTTPS only) |
@@ -89,10 +89,10 @@ Connect. Work through the second list before pressing Submit.
     > No account is needed. Tap "Today's talk", agree to the data-sharing notice,
     > allow the microphone, and speak for about a minute. The recording is sent
     > to NVIDIA's AI model service for transcription and coaching; the consent
-    > screen and Settings → Privacy explain this and allow withdrawal. Scoring
+    > screen and Profile → Privacy explain this and allow withdrawal. Scoring
     > needs a network connection. Feedback is AI-generated and labelled as such.
     > An account is required; sign in with Apple, Google or email on the first
-    > screen. Demo account: EMAIL / PASSWORD. Delete account is under Settings → Account.
+    > screen. Demo account: EMAIL / PASSWORD. Delete account is under Profile (avatar on the Today tab) → Account.
     > No in-app purchases.
 
 12. **Test on a real device via TestFlight** before review. Apple emails about a

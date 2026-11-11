@@ -5,7 +5,9 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SessionCard } from '../../src/components/SessionRow';
+import { useAuth } from '../../src/auth/AuthProvider';
 import {
+  Avatar,
   Badge,
   Button,
   Card,
@@ -29,6 +31,7 @@ import type { Session } from '../../src/types';
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+  const { session } = useAuth();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [hasKey, setHasOpenAIKey] = useState<boolean | null>(null);
 
@@ -79,6 +82,7 @@ export default function HomeScreen() {
               accessibilityLabel="Settings"
               onPress={() => router.push('/settings')}
             />
+            <Avatar email={session?.user.email ?? null} onPress={() => router.push('/profile')} />
           </>
         }
       />
