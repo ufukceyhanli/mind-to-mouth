@@ -85,8 +85,8 @@ function layout({ title, description, path, body, wide = false }) {
   const fullTitle = path === '/' ? `${SITE.name} – speak for two minutes, every day` : `${title} – ${SITE.name}`;
   const nav = [
     ['/', 'Home'],
-    ['/privacy', 'Privacy'],
     ['/support', 'Support'],
+    ['/privacy', 'Privacy'],
   ]
     .map(([href, label]) =>
       href === path ? `<a href="${href}" aria-current="page">${label}</a>` : `<a href="${href}">${label}</a>`,
@@ -122,6 +122,7 @@ function layout({ title, description, path, body, wide = false }) {
       <nav aria-label="Site">
         ${nav}
       </nav>
+      <a class="button small header-cta" href="${SITE.repo}">Get the app</a>
     </div>
   </header>
 
