@@ -52,9 +52,12 @@ Actions tab deploys on demand. One-time setup, all in the browser:
    [action's docs](https://github.com/FirebaseExtended/action-hosting-deploy/blob/main/docs/service-account.md)
    ask for: open <https://console.cloud.google.com/iam-admin/iam?project=mind-to-mouth>,
    find the principal that starts with `firebase-adminsdk-`, press the pencil,
-   **Add another role** and add **Firebase Hosting Admin** and **API Keys
-   Viewer**, then **Save**. (Alternatively create a dedicated service account
-   with those two roles and use its key instead.)
+   **Add another role** and add **Firebase Hosting Admin**, **API Keys
+   Viewer** and **Service Usage Viewer**, then **Save**. The last one grants
+   `serviceusage.services.get`, which the CLI uses to check that the Hosting
+   API is on; without it the deploy still fails with the same error.
+   (Alternatively create a dedicated service account with those three roles
+   and use its key instead.) IAM changes can take a minute or two to apply.
 5. On GitHub, open the repository's **Settings → Secrets and variables →
    Actions → New repository secret**. Name it `FIREBASE_SERVICE_ACCOUNT` and
    paste the whole contents of the JSON file as the value. Delete the

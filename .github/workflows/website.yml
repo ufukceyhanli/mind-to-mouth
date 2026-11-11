@@ -4,7 +4,8 @@
 #   1. Create the Firebase project (id "mind-to-mouth") at console.firebase.google.com.
 #   2. Project settings → Service accounts → "Generate new private key" (downloads a JSON file).
 #   3. Google Cloud console → IAM → the firebase-adminsdk-… principal → add the roles
-#      "Firebase Hosting Admin" and "API Keys Viewer" (the key alone cannot deploy).
+#      "Firebase Hosting Admin", "API Keys Viewer" and "Service Usage Viewer"
+#      (the key alone cannot deploy).
 #   4. GitHub → repo Settings → Secrets and variables → Actions → New repository secret:
 #      name FIREBASE_SERVICE_ACCOUNT, value = the whole JSON file.
 # Then every push to main that touches the site deploys it, and the "Run workflow"
