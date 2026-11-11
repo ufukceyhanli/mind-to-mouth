@@ -1,6 +1,6 @@
 # Mind to Mouth privacy policy
 
-_Last updated: 8 November 2026 (accounts added)_
+_Last updated: 11 November 2026 (accounts required, Google sign-in added)_
 
 Mind to Mouth is a speaking-practice app made by Ufuk Ceyhanli, an individual developer. It gives you a random word, records you talking about it, and scores the talk. This page explains what the app does with your data. It is written to be read, not skimmed, and it is short because the app does very little with your data.
 
@@ -8,7 +8,7 @@ Mind to Mouth is a speaking-practice app made by Ufuk Ceyhanli, an individual de
 
 **Your talk.** When you practise, the app records your voice through the microphone. It keeps the recording, the transcript, the scores and the coach's feedback on your phone so you can listen back and track progress.
 
-**Your account, if you make one.** Signing in is optional; every feature works without it. If you create an account, the app stores your email address (or, with Sign in with Apple, the address Apple gives it, which may be a private relay address), the time you signed up and last signed in, and an account identifier. With Sign in with Apple it also keeps the name Apple shares the first time, if you allow that. The account is held by **Supabase** (Supabase Inc.), the sign-in service the app uses, in the region chosen when the project was created. Nothing else is stored with the account: talks, recordings, transcripts and scores stay on your phone and are never uploaded to it.
+**Your account.** You need an account to use the app. When you create one, the app stores your email address (or, with Sign in with Apple or Google, the address they give it, which with Apple may be a private relay address), the time you signed up and last signed in, and an account identifier. With Sign in with Apple it also keeps the name Apple shares the first time, if you allow that. The account is held by **Supabase** (Supabase Inc.), the sign-in service the app uses, in the region chosen when the project was created. Nothing else is stored with the account: talks, recordings, transcripts and scores stay on your phone and are never uploaded to it.
 
 **Nothing else about you.** No analytics, no advertising, no tracking and no device identifiers. The app does not read your contacts, photos, location or anything else on the phone.
 
@@ -16,7 +16,7 @@ Mind to Mouth is a speaking-practice app made by Ufuk Ceyhanli, an individual de
 
 To score a talk, the app sends the recording to **NVIDIA's AI model service** (`integrate.api.nvidia.com`), which turns the audio into text. The text of your talk is then sent to the same service once more so an AI coach can write feedback. If you turn on the optional pronunciation check in Settings, the recording is sent a second time for that purpose.
 
-If you sign in, your email address and password (or Apple's identity token) go to **Supabase** (`supabase.co`) to create and check your session. Supabase processes that data as the app's service provider under its privacy policy at <https://supabase.com/privacy>. Sign in with Apple is handled by Apple under Apple's own terms.
+When you sign in, your email address and password (or Apple's or Google's identity token) go to **Supabase** (`supabase.co`) to create and check your session. Supabase processes that data as the app's service provider under its privacy policy at <https://supabase.com/privacy>. Sign in with Apple is handled by Apple under Apple's own terms, and Sign in with Google by Google under Google's.
 
 Those are the only places your data goes. The developer does not run a server, never receives your recordings, and cannot see your talks. The developer can see the list of account emails in the Supabase dashboard and uses it for nothing except deleting accounts on request.
 

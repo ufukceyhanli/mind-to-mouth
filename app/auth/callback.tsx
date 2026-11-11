@@ -34,8 +34,8 @@ export default function AuthCallbackScreen() {
           <Muted style={styles.body}>
             {failed ? linkStatus.message : 'Open the newest email from Mind to Mouth, or ask for a new link.'}
           </Muted>
-          <Button title="Back to sign in" onPress={() => router.replace('/auth')} />
-          <Button title="Home" variant="ghost" onPress={() => router.replace('/')} />
+          <Button title="Back to sign in" onPress={() => router.replace(session ? '/' : '/auth/sign-in')} />
+          <Button title="Start over" variant="ghost" onPress={() => router.replace(session ? '/' : '/auth/welcome')} />
         </>
       ) : (
         <>

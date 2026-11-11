@@ -25,7 +25,7 @@ function RootNavigator() {
   const fontsSettled = loaded || error;
 
   // The splash screen stays up until the fonts and the stored sign-in state are
-  // both known, so a signed-in user never flashes the signed-out UI.
+  // both known, so a signed-in user never flashes the welcome screen.
   useEffect(() => {
     if (fontsSettled && ready) SplashScreen.hideAsync();
   }, [fontsSettled, ready]);
@@ -49,27 +49,35 @@ function RootNavigator() {
             contentStyle: { backgroundColor: colors.bg },
           }}
         >
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="practice"
-            options={{ headerShown: false, gestureEnabled: false }}
-          />
-          <Stack.Screen
-            name="result/[id]"
-            options={{ title: '', headerBackTitle: 'Back' }}
-          />
-          {/* Accounts are optional: the app works signed out. The guards only
-              keep a signed-in user off the sign-in form and a signed-out user
-              off the new-password form, bouncing them back to the tabs. */}
+          {/* An account is required. Everything the app does sits behind the
+              signed-in guard; a signed-out user can only reach the welcome
+              carousel and the sign-up / sign-in screens. The welcome screen is
+              declared first so it is where the router lands when the tabs are
+              off limits. Flipping the guard (signing in or out) clears the other
+              side's history, so there is no way back into the app without a
+              session. */}
           <Stack.Protected guard={!signedIn}>
-            <Stack.Screen name="auth/index" options={{ title: 'Account', headerBackTitle: 'Back' }} />
+            <Stack.Screen name="auth/welcome" options={{ headerShown: false }} />
+            <Stack.Screen name="auth/index" options={{ headerShown: false }} />
+            <Stack.Screen name="auth/sign-up" options={{ headerShown: false }} />
+            <Stack.Screen name="auth/sign-in" options={{ headerShown: false }} />
           </Stack.Protected>
           <Stack.Protected guard={signedIn}>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="practice"
+              options={{ headerShown: false, gestureEnabled: false }}
+            />
+            <Stack.Screen
+              name="result/[id]"
+              options={{ title: '', headerBackTitle: 'Back' }}
+            />
             <Stack.Screen
               name="auth/reset"
               options={{ title: 'New password', headerBackTitle: 'Back' }}
             />
           </Stack.Protected>
+          {/* Email links land here signed out or in, so it is never guarded. */}
           <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
         </Stack>
       </SafeAreaProvider>

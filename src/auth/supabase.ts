@@ -9,9 +9,10 @@ import * as SecureStore from 'expo-secure-store';
 import { AppState } from 'react-native';
 
 /**
- * Accounts are optional and only exist when a build is given a Supabase
- * project through `.env` (see `.env.example`). Without the two variables the
- * app behaves exactly as before: no Account section, no auth screen.
+ * Every user needs an account, and accounts live in the Supabase project a
+ * build is given through `.env` (see `.env.example`). Without the two
+ * variables nobody can sign in, so the app stops at the welcome screen with a
+ * notice that accounts are not set up.
  */
 const SUPABASE_URL = (process.env.EXPO_PUBLIC_SUPABASE_URL ?? '').trim();
 const SUPABASE_ANON_KEY = (process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '').trim();
@@ -95,6 +96,23 @@ export function getSupabase(): SupabaseClient {
   return client;
 }
 
+// ---- Server settings -------------------------------------------------------
+
+/**
+ * Which third-party providers the Supabase project has switched on. GoTrue's
+ * public settings endpoint answers with `external: { google: true, ... }`, so
+ * the app can hide a "Continue with Google" button that would only lead to an
+ * error page.
+ */
+export async function fetchEnabledProviders(): Promise<Record<string, boolean>> {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/settings`, {
+    headers: { apikey: SUPABASE_ANON_KEY },
+  });
+  if (!res.ok) throw new Error(`Auth settings returned ${res.status}`);
+  const body = (await res.json()) as { external?: Record<string, boolean> };
+  return body.external ?? {};
+}
+
 // ---- Email link callbacks --------------------------------------------------
 
 export type AuthCallback = {
@@ -165,6 +183,9 @@ export function describeAuthError(error: unknown): string {
     return 'Too many attempts. Wait a few minutes and try again.';
   }
   if (lower.includes('already registered')) return 'There is already an account with that email. Sign in instead.';
+  if (lower.includes('provider is not enabled') || lower.includes('unsupported provider')) {
+    return 'That way of signing in is not set up yet. Use email or Apple instead.';
+  }
   if (lower.includes('password should be')) return 'Use a password of at least 6 characters.';
   if (lower.includes('could not find the function') || lower.includes('delete_user')) {
     return 'Account deletion is not set up on the server yet. See supabase/schema.sql.';

@@ -6,8 +6,8 @@ transcribed, scored, and reviewed by an AI coach so you can watch yourself get
 better at thinking out loud.
 
 Everything runs on free models from [build.nvidia.com](https://build.nvidia.com).
-One API key. Signing in is optional (see *Accounts* below) and never required
-to practise.
+One API key. An account is required: the app opens on a welcome carousel and
+nothing else is reachable until you sign up or sign in (see *Accounts* below).
 
 ## Run it in Expo Go
 
@@ -86,7 +86,10 @@ app/                 Expo Router screens
   result/[id].tsx    score breakdown, coach notes, transcript
   (tabs)/history.tsx all talks (swipe left or long-press to delete)
   (tabs)/settings.tsx account, API key, model ids, timing options, privacy
-  auth/index.tsx     sign in / create account (Apple, email + password, email link)
+  auth/welcome.tsx   first screen when signed out: what the app does, Get Started, I have an account
+  auth/index.tsx     create account, step 1: continue with email, Apple or Google
+  auth/sign-up.tsx   create account, step 2: email and password
+  auth/sign-in.tsx   sign in: Apple, Google, email + password, email link, forgot password
   auth/reset.tsx     pick a new password after a reset link
   auth/callback.tsx  landing route for email links (mindtomouth://auth/callback)
 src/
@@ -132,17 +135,24 @@ npx expo export --platform ios   # prove the bundle builds
 
 ## Accounts
 
-Accounts are optional and only identify the user; talks never leave the phone.
-They run on [Supabase](https://supabase.com) auth and exist only in builds
-whose `.env` has `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY`
-(see `.env.example`). Without them there is no Account section and no auth
-screen. Metro inlines these values when it transforms `src/auth/supabase.ts`
+Every user needs an account, but it only identifies them; talks never leave
+the phone. The root layout (`app/_layout.tsx`) wraps the tabs, practice and
+result screens in a signed-in guard, so a signed-out user can only see the
+welcome carousel and the sign-up and sign-in screens, and signing out drops
+them straight back there. Accounts run on [Supabase](https://supabase.com)
+auth, configured through `.env` with `EXPO_PUBLIC_SUPABASE_URL` and
+`EXPO_PUBLIC_SUPABASE_ANON_KEY` (see `.env.example`). A build without them
+cannot sign anyone in and says so on the account screens. Metro inlines these values when it transforms `src/auth/supabase.ts`
 and caches the result by source content, so after editing `.env` clear the
 cache (`rm -rf "$TMPDIR/metro-cache"` or `npx expo start --clear`) before
 building, or the app ships the old values. Setup, including the redirect URL, the Apple provider and the
 `supabase/schema.sql` function behind *Delete account*, is listed step by step
 in `APP_STORE.md`. Sign in with Apple needs a development build (the
-`expo-apple-authentication` native module is not in Expo Go).
+`expo-apple-authentication` native module is not in Expo Go). *Continue with
+Google* opens Google's consent page in the system browser through Supabase
+(`signInWithOAuth` + `expo-web-browser`) and needs the Google provider enabled
+in the Supabase dashboard; until it is, the button explains that it is not set
+up yet.
 
 ## Privacy and App Store
 

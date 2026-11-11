@@ -13,7 +13,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 
 import { providerLabel, useAuth } from '../../src/auth/AuthProvider';
 import { describeAuthError } from '../../src/auth/supabase';
@@ -131,7 +131,7 @@ export default function SettingsScreen() {
             setAccountBusy('delete');
             try {
               await auth.deleteAccount();
-              Alert.alert('Account deleted', 'You are signed out. Your talks are still on this phone.');
+              Alert.alert('Account deleted', 'Your talks are still on this phone. Create an account to use the app again.');
             } catch (e) {
               Alert.alert('Could not delete the account', describeAuthError(e));
             } finally {
@@ -189,51 +189,38 @@ export default function SettingsScreen() {
       >
         <PageHeader title="Settings" />
 
-        {auth.configured && (
+        {/* Everyone here is signed in: the root layout keeps signed-out users
+            on the welcome and sign-in screens. */}
+        {auth.session && (
           <View>
             <SectionTitle>Account</SectionTitle>
-            {auth.session ? (
-              <Card style={{ gap: spacing.md }}>
-                <View>
-                  <Text style={styles.label}>Signed in as</Text>
-                  <Text style={styles.value} selectable>
-                    {auth.session.user.email ?? 'No email on file'}
-                  </Text>
-                  <Muted style={styles.hint}>
-                    With {providerLabel(auth.session)}. Your talks and recordings stay on this phone.
-                  </Muted>
-                </View>
-                <Button
-                  title="Sign out"
-                  variant="secondary"
-                  icon="log-out-outline"
-                  onPress={() => void signOut()}
-                  loading={accountBusy === 'signout'}
-                  disabled={accountBusy === 'delete'}
-                />
-                <Button
-                  title="Delete account"
-                  variant="danger"
-                  icon="person-remove-outline"
-                  onPress={deleteAccount}
-                  loading={accountBusy === 'delete'}
-                  disabled={accountBusy === 'signout'}
-                />
-              </Card>
-            ) : (
-              <Card style={{ gap: spacing.md }}>
-                <Muted>
-                  Optional. An account identifies you; talks, recordings and scores stay on this
-                  phone either way.
+            <Card style={{ gap: spacing.md }}>
+              <View>
+                <Text style={styles.label}>Signed in as</Text>
+                <Text style={styles.value} selectable>
+                  {auth.session.user.email ?? 'No email on file'}
+                </Text>
+                <Muted style={styles.hint}>
+                  With {providerLabel(auth.session)}. Your talks and recordings stay on this phone.
                 </Muted>
-                <Button
-                  title="Sign in or create account"
-                  variant="secondary"
-                  icon="person-outline"
-                  onPress={() => router.push('/auth')}
-                />
-              </Card>
-            )}
+              </View>
+              <Button
+                title="Sign out"
+                variant="secondary"
+                icon="log-out-outline"
+                onPress={() => void signOut()}
+                loading={accountBusy === 'signout'}
+                disabled={accountBusy === 'delete'}
+              />
+              <Button
+                title="Delete account"
+                variant="danger"
+                icon="person-remove-outline"
+                onPress={deleteAccount}
+                loading={accountBusy === 'delete'}
+                disabled={accountBusy === 'signout'}
+              />
+            </Card>
           </View>
         )}
 

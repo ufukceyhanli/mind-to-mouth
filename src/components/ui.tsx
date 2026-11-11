@@ -20,14 +20,18 @@ export type IconName = ComponentProps<typeof Ionicons>['name'];
 type ButtonProps = {
   title: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'dark' | 'outline';
   icon?: IconName;
   disabled?: boolean;
   loading?: boolean;
   style?: StyleProp<ViewStyle>;
 };
 
-/** Pill button, 56pt tall. Primary is filled orange, secondary pale orange. */
+/**
+ * Pill button, 56pt tall. Primary is filled orange, secondary pale orange,
+ * dark is near-black with white text (third-party sign-in), outline is a thin
+ * dark ring on the page colour.
+ */
 export function Button({
   title,
   onPress,
@@ -39,13 +43,15 @@ export function Button({
 }: ButtonProps) {
   const isDisabled = disabled || loading;
   const textColor =
-    variant === 'primary'
+    variant === 'primary' || variant === 'dark'
       ? colors.onAccent
       : variant === 'danger'
         ? colors.danger
         : variant === 'ghost'
           ? colors.muted
-          : colors.accent;
+          : variant === 'outline'
+            ? colors.text
+            : colors.accent;
   return (
     <Pressable
       accessibilityRole="button"
@@ -58,6 +64,8 @@ export function Button({
         variant === 'secondary' && styles.buttonSecondary,
         variant === 'ghost' && styles.buttonGhost,
         variant === 'danger' && styles.buttonDanger,
+        variant === 'dark' && styles.buttonDark,
+        variant === 'outline' && styles.buttonOutline,
         isDisabled && styles.buttonDisabled,
         pressed && !isDisabled && styles.buttonPressed,
         style,
@@ -408,6 +416,8 @@ const styles = StyleSheet.create({
   buttonSecondary: { backgroundColor: colors.accentSoft },
   buttonGhost: { backgroundColor: 'transparent', minHeight: 48 },
   buttonDanger: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: colors.danger },
+  buttonDark: { backgroundColor: colors.dark },
+  buttonOutline: { backgroundColor: colors.bg, borderWidth: 1.5, borderColor: colors.dark },
   buttonDisabled: { opacity: 0.45 },
   buttonPressed: { opacity: 0.85, transform: [{ scale: 0.99 }] },
   buttonText: { ...type.h3, fontSize: 17, lineHeight: 22 },
