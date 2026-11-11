@@ -22,7 +22,7 @@ Connect. Work through the second list before pressing Submit.
 | 3.1.2 Subscriptions | Paywall shows name, length, price, what you get; restore; links to terms and privacy; ongoing value | `app/plus.tsx`: "Mind to Mouth Plus", monthly, the App Store's localised price, three benefits, auto-renew wording, **Restore purchases**, Terms of use (Apple's standard EULA) and Privacy policy links. The free plan keeps working without it |
 | 3.1.2(a) Manage | Tell people how to manage and cancel | Profile → Plan → Manage opens the App Store subscription settings; support page `#cancel`; the delete-account prompt says the subscription is not cancelled by it |
 | 2.1 Completeness | No placeholders, handles no network and denied permission | Offline error text, "Open Settings" when the microphone is denied, empty states on every tab |
-| iPad | Orientation rules for multitasking | All four iPad orientations are declared; the layout is a single column that scales |
+| Devices | Declared device family matches the screenshots | iPhone only for 1.0 (`ios.supportsTablet: false`), portrait. iPad runs it in iPhone size. iPad support can be added in a later version but never removed once shipped |
 | Accessibility | VoiceOver labels | Every tappable element has a role and label |
 
 ## To do in App Store Connect
@@ -119,15 +119,15 @@ Connect. Work through the second list before pressing Submit.
    2025 questionnaire asks about AI features; answer that the app contains
    AI-generated feedback shown only to the user. Expected rating 4+.
 10. **Category**: Education (secondary: Productivity).
-11. **Screenshots**: 6.9-inch iPhone set is required; a 13-inch iPad set is
-   required while `ios.supportsTablet` is true. Show the Today tab, the word
+11. **Screenshots**: 6.9-inch iPhone set is required (1320 × 2868). No iPad set
+   is needed while `ios.supportsTablet` is false. Show the Today tab, the word
    reveal, the recording screen, a result and the Talks list. No splash or
    login screens.
 12. **Notes for Review**: paste this, and fill in a demo account you created
     in the Supabase dashboard (Authentication → Users → Add user, with
     "Auto confirm" on). Apple asks for one whenever an app has a login.
 
-    > No account is needed. Tap "Today's talk", agree to the data-sharing notice,
+    > Sign in with the demo account below. Tap "Today's talk", agree to the data-sharing notice,
     > allow the microphone, and speak for about a minute. The recording is sent
     > to a third-party AI service for transcription and coaching; the consent
     > screen explains this and Profile → About allows withdrawal. Scoring
