@@ -46,11 +46,20 @@ Actions tab deploys on demand. One-time setup, all in the browser:
 3. **Project settings** (gear next to *Project Overview*) → **Service
    accounts** → **Generate new private key**. A JSON file downloads. Treat it
    like a password: it can deploy to the project.
-4. On GitHub, open the repository's **Settings → Secrets and variables →
+4. That key belongs to the *Firebase Admin SDK* service account, which cannot
+   deploy Hosting on its own (it lacks `serviceusage.services.get`, so
+   `firebase deploy` fails with `PERMISSION_DENIED`). Give it the roles the
+   [action's docs](https://github.com/FirebaseExtended/action-hosting-deploy/blob/main/docs/service-account.md)
+   ask for: open <https://console.cloud.google.com/iam-admin/iam?project=mind-to-mouth>,
+   find the principal that starts with `firebase-adminsdk-`, press the pencil,
+   **Add another role** and add **Firebase Hosting Admin** and **API Keys
+   Viewer**, then **Save**. (Alternatively create a dedicated service account
+   with those two roles and use its key instead.)
+5. On GitHub, open the repository's **Settings → Secrets and variables →
    Actions → New repository secret**. Name it `FIREBASE_SERVICE_ACCOUNT` and
    paste the whole contents of the JSON file as the value. Delete the
    downloaded file afterwards.
-5. Merge this branch into `main` (or open Actions → *Website* → *Run workflow*
+6. Merge this branch into `main` (or open Actions → *Website* → *Run workflow*
    once the workflow is on the default branch). The run takes about a minute
    and prints the live URL. Open `/privacy` and `/support` afterwards; App
    Review will.
