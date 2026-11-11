@@ -90,8 +90,11 @@ public speaking,speech,impromptu,fluency,filler words,presentation,interview,coa
 
 ## Screenshots
 
-6.9-inch iPhone, 1320 × 2868, in `store-assets/appstore/`, in this order:
-Today, the word, talking, the result, the talks list.
+6.9-inch iPhone, 1320 × 2868, in `store-assets/appstore/`. Upload them in
+file-name order: `1-today`, `2-word`, `3-talking`, `4-result`, `5-coaching`,
+`6-talks`. They were taken in the simulator with sample talks scored by the
+app's own rubric. `store-assets/paywall-2.png` is the screenshot for the
+subscription's Review Information, not for the listing.
 
 ## Age rating questionnaire
 
