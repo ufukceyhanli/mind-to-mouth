@@ -2,6 +2,7 @@ import type { Session } from '@supabase/supabase-js';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Crypto from 'expo-crypto';
 import * as Linking from 'expo-linking';
+import * as WebBrowser from 'expo-web-browser';
 import {
   createContext,
   useCallback,
@@ -13,7 +14,13 @@ import {
   type PropsWithChildren,
 } from 'react';
 
-import { AUTH_REDIRECT_URL, getSupabase, isAuthConfigured, parseAuthCallback } from './supabase';
+import {
+  AUTH_REDIRECT_URL,
+  fetchEnabledProviders,
+  getSupabase,
+  isAuthConfigured,
+  parseAuthCallback,
+} from './supabase';
 
 /** What happened with the last email link the app was opened from. */
 export type LinkStatus = { state: 'idle' } | { state: 'working' } | { state: 'error'; message: string };
@@ -23,6 +30,8 @@ export type AuthContextValue = {
   ready: boolean;
   /** Whether this build has a Supabase project at all. */
   configured: boolean;
+  /** True once the server has confirmed its Google provider is switched on. */
+  googleEnabled: boolean;
   session: Session | null;
   /** Set when the user arrived through a password-reset link and must pick a new password. */
   recovery: boolean;
@@ -34,6 +43,8 @@ export type AuthContextValue = {
   sendPasswordReset: (email: string) => Promise<void>;
   /** Resolves to false when the user cancelled Apple's sheet. */
   signInWithApple: () => Promise<boolean>;
+  /** Google through the system browser. Resolves to false when the user closed it. */
+  signInWithGoogle: () => Promise<boolean>;
   updatePassword: (password: string) => Promise<void>;
   signOut: () => Promise<void>;
   /** Removes the account and everything the server holds about it, then signs out. */
@@ -48,6 +59,24 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<Session | null>(null);
   const [recovery, setRecovery] = useState(false);
   const [linkStatus, setLinkStatus] = useState<LinkStatus>({ state: 'idle' });
+  const [googleEnabled, setGoogleEnabled] = useState(false);
+
+  // Ask the server which providers exist, so the sign-in screens only offer
+  // Google once the dashboard has it switched on. Unknown means hidden.
+  useEffect(() => {
+    if (!isAuthConfigured) return;
+    let cancelled = false;
+    fetchEnabledProviders()
+      .then((external) => {
+        if (!cancelled) setGoogleEnabled(external.google === true);
+      })
+      .catch(() => {
+        // Offline or blocked: keep the button hidden rather than dead.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Restore the stored session once, then follow every change (sign in, sign
   // out, token refresh) for the rest of the app's life.
@@ -77,6 +106,32 @@ export function AuthProvider({ children }: PropsWithChildren) {
     };
   }, []);
 
+  // Turns the tokens Supabase put in a redirect URL into a session. Shared by
+  // the email links below and the Google browser flow.
+  const applyCallbackUrl = useCallback(async (callbackUrl: string) => {
+    const parsed = parseAuthCallback(callbackUrl);
+    if (parsed.kind === 'none') return;
+    if (parsed.kind === 'error') {
+      setLinkStatus({ state: 'error', message: parsed.message });
+      return;
+    }
+    setLinkStatus({ state: 'working' });
+    try {
+      const { error } = await getSupabase().auth.setSession({
+        access_token: parsed.session.accessToken,
+        refresh_token: parsed.session.refreshToken,
+      });
+      if (error) throw error;
+      if (parsed.session.type === 'recovery') setRecovery(true);
+      setLinkStatus({ state: 'idle' });
+    } catch (e) {
+      setLinkStatus({
+        state: 'error',
+        message: e instanceof Error ? e.message : 'The link could not be used.',
+      });
+    }
+  }, []);
+
   // Email links (confirmation, magic link, password reset) open the app at
   // mindtomouth://auth/callback with the tokens in the URL. Each URL is
   // handled once, whether it launched the app or arrived while it was open.
@@ -85,30 +140,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     if (!isAuthConfigured || !url || handledUrl.current === url) return;
     handledUrl.current = url;
-    const parsed = parseAuthCallback(url);
-    if (parsed.kind === 'none') return;
-    (async () => {
-      if (parsed.kind === 'error') {
-        setLinkStatus({ state: 'error', message: parsed.message });
-        return;
-      }
-      setLinkStatus({ state: 'working' });
-      try {
-        const { error } = await getSupabase().auth.setSession({
-          access_token: parsed.session.accessToken,
-          refresh_token: parsed.session.refreshToken,
-        });
-        if (error) throw error;
-        if (parsed.session.type === 'recovery') setRecovery(true);
-        setLinkStatus({ state: 'idle' });
-      } catch (e) {
-        setLinkStatus({
-          state: 'error',
-          message: e instanceof Error ? e.message : 'The link could not be used.',
-        });
-      }
-    })();
-  }, [url]);
+    void applyCallbackUrl(url);
+  }, [url, applyCallbackUrl]);
 
   const signInWithPassword = useCallback(async (email: string, password: string) => {
     const { error } = await getSupabase().auth.signInWithPassword({ email, password });
@@ -177,6 +210,31 @@ export function AuthProvider({ children }: PropsWithChildren) {
     return true;
   }, []);
 
+  const signInWithGoogle = useCallback(async () => {
+    if (!googleEnabled) throw new Error('Unsupported provider: provider is not enabled');
+    // Google forbids OAuth inside embedded web views, so the consent page opens
+    // in the system's auth session (ASWebAuthenticationSession on iOS). Supabase
+    // hands the tokens back on the same redirect URL the email links use, and
+    // the browser returns that URL here instead of opening it as a deep link.
+    const { data, error } = await getSupabase().auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: AUTH_REDIRECT_URL, skipBrowserRedirect: true },
+    });
+    if (error) throw error;
+    if (!data.url) throw new Error('Google sign-in did not return a sign-in page.');
+    const result = await WebBrowser.openAuthSessionAsync(data.url, AUTH_REDIRECT_URL);
+    if (result.type !== 'success') return false;
+    const parsed = parseAuthCallback(result.url);
+    if (parsed.kind === 'error') throw new Error(parsed.message);
+    if (parsed.kind === 'none') throw new Error('Google did not sign you in. Please try again.');
+    const { error: sessionError } = await getSupabase().auth.setSession({
+      access_token: parsed.session.accessToken,
+      refresh_token: parsed.session.refreshToken,
+    });
+    if (sessionError) throw sessionError;
+    return true;
+  }, [googleEnabled]);
+
   const updatePassword = useCallback(async (password: string) => {
     const { error } = await getSupabase().auth.updateUser({ password });
     if (error) throw error;
@@ -209,6 +267,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     () => ({
       ready,
       configured: isAuthConfigured,
+      googleEnabled,
       session,
       recovery,
       linkStatus,
@@ -217,6 +276,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       sendMagicLink,
       sendPasswordReset,
       signInWithApple,
+      signInWithGoogle,
       updatePassword,
       signOut,
       deleteAccount,
@@ -224,6 +284,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }),
     [
       ready,
+      googleEnabled,
       session,
       recovery,
       linkStatus,
@@ -232,6 +293,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       sendMagicLink,
       sendPasswordReset,
       signInWithApple,
+      signInWithGoogle,
       updatePassword,
       signOut,
       deleteAccount,
@@ -252,5 +314,6 @@ export function useAuth(): AuthContextValue {
 export function providerLabel(session: Session): string {
   const provider = session.user.app_metadata?.provider;
   if (provider === 'apple') return 'Apple';
+  if (provider === 'google') return 'Google';
   return 'email';
 }

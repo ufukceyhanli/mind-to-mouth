@@ -12,8 +12,8 @@ Connect. Work through the second list before pressing Submit.
 | 5.1.2(i) Third-party AI | Disclose where personal data goes, including third-party AI, and get explicit permission first | Consent screen names the service and what is sent; nothing is recorded or uploaded until "Agree and continue" |
 | 5.1.1(i) Deletion | Explain retention and how to delete | Swipe-left or long-press delete in Talks, "Delete talk" on a talk's screen, "Delete all talks and recordings" in Settings, policy text |
 | 5.1.1(v) Account deletion | An app that lets people create an account must let them delete it in the app | Settings → Account → Delete account, confirmed, calls the `delete_user` function in `supabase/schema.sql`, which removes the user and all server data |
-| 4.8 Sign in with Apple | Offered whenever a third-party login is offered; equivalent, privacy-respecting | Native Sign in with Apple button on the auth screen (`expo-apple-authentication`), email relay accepted; accounts are optional so no screen is gated on login |
-| 5.1.1(ii) Account optional | Do not require account creation unless the app's core features need it | Every feature works signed out; the auth screen says so and Settings shows "Sign in or create account" only as an option |
+| 4.8 Sign in with Apple | Offered whenever a third-party login is offered; equivalent, privacy-respecting | Native "Continue with Apple" button (`expo-apple-authentication`) next to Google on the create-account and sign-in screens, email relay accepted |
+| 5.1.1(ii) Account required | Account creation may only be required when the app's core features need it | The app requires an account before anything else (welcome → create account or sign in). Be ready to explain in Review Notes why the core features need it, or Apple may push back |
 | 1.2 / 4.7 AI content | Report mechanism and published contact | "Report a problem" link under the coach card and in Settings → About (GitHub issues); the coach prompt forbids remarks about the person |
 | 5.1.1(ii) Purpose strings | Explain the microphone use | `NSMicrophoneUsageDescription` in `app.json` says what is recorded and that it is only sent after agreement |
 | Privacy manifest | Declare collected data and required-reason APIs | `ios.privacyManifests` in `app.json`: Audio Data (not linked), Email Address and User ID (linked to the account, app functionality, not tracking) |
@@ -41,7 +41,7 @@ Connect. Work through the second list before pressing Submit.
    - Project Settings → API: copy the project URL and the anon (publishable)
      key into `.env` as `EXPO_PUBLIC_SUPABASE_URL` and
      `EXPO_PUBLIC_SUPABASE_ANON_KEY` (and as EAS secrets for cloud builds). A
-     build without them has no Account section at all. **After any change to
+     build without them cannot sign anyone in, so it stops at the welcome screen. **After any change to
      `.env`, clear Metro's cache before building** (`rm -rf "$TMPDIR/metro-cache"`,
      or `npx expo start --clear` once): `EXPO_PUBLIC_*` values are inlined at
      transform time and the cache is keyed on source only, so a rebuild can
@@ -51,6 +51,12 @@ Connect. Work through the second list before pressing Submit.
      `mindtomouth://auth/callback` and add `mindtomouth://**` under Redirect URLs.
    - Authentication → Providers → Apple: enable it and put `com.mindtomouth.app`
      in *Client IDs*. Native iOS sign-in needs no Services ID or secret key.
+   - Authentication → Providers → Google: enable it with an OAuth client ID and
+     secret from Google Cloud (APIs & Services → Credentials, type *Web
+     application*, with Supabase's callback URL from this page as an authorised
+     redirect URI). The app opens Google in the system browser and comes back on
+     `mindtomouth://auth/callback`, which the Redirect URLs above already allow.
+     Until this is done, "Continue with Google" shows "not set up yet".
    - SQL Editor: run `supabase/schema.sql` once. It creates the `delete_user`
      function that "Delete account" calls; without it deletion fails with a
      message pointing here.
@@ -85,8 +91,8 @@ Connect. Work through the second list before pressing Submit.
     > to NVIDIA's AI model service for transcription and coaching; the consent
     > screen and Settings → Privacy explain this and allow withdrawal. Scoring
     > needs a network connection. Feedback is AI-generated and labelled as such.
-    > Optional sign-in (Settings → Account) with Sign in with Apple or email;
-    > demo account: EMAIL / PASSWORD. Delete account is under Settings → Account.
+    > An account is required; sign in with Apple, Google or email on the first
+    > screen. Demo account: EMAIL / PASSWORD. Delete account is under Settings → Account.
     > No in-app purchases.
 
 12. **Test on a real device via TestFlight** before review. Apple emails about a
