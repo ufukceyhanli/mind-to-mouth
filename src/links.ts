@@ -17,5 +17,10 @@ export const REPORT_PROBLEM_URL = SUPPORT_EMAIL
   ? `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Mind to Mouth: coach feedback')}`
   : SUPPORT_URL;
 
-/** Where recordings go. Named once so the consent text and policy agree. */
-export const SPEECH_SERVICE_NAME = 'NVIDIA’s AI model service';
+/**
+ * How the consent screen, Profile and the policy describe where recordings go.
+ * Deliberately a category, not a vendor name: Apple asks for disclosure of
+ * third-party AI processing, not for the provider to be named, and naming it
+ * would give away the stack. Keep in step with PRIVACY.md.
+ */
+export const SPEECH_SERVICE_NAME = 'a third-party AI service';

@@ -9,7 +9,7 @@ Connect. Work through the second list before pressing Submit.
 | --- | --- | --- |
 | 5.1.1(i) Privacy policy | Link in App Store Connect **and** inside the app | `PRIVACY.md`, published at <https://mind-to-mouth.web.app/privacy> by the site in `website/`, linked from Profile → About and from the consent screen (`src/links.ts`) |
 | 5.1.1(ii) Permission | Consent for data collection, easy to withdraw | Consent screen before the first recording (`app/practice.tsx`), Withdraw in Profile → About |
-| 5.1.2(i) Third-party AI | Disclose where personal data goes, including third-party AI, and get explicit permission first | Consent screen names the service and what is sent; nothing is recorded or uploaded until "Agree and continue" |
+| 5.1.2(i) Third-party AI | Disclose where personal data goes, including third-party AI, and get explicit permission first | Consent screen says audio goes to a third-party AI service and what is sent; nothing is recorded or uploaded until "Agree and continue". Vendors are deliberately not named anywhere public (the guideline asks for disclosure, not names); the policy offers the names on request |
 | 5.1.1(i) Deletion | Explain retention and how to delete | Swipe-left or long-press delete in Talks, "Delete talk" on a talk's screen, "Delete all talks and recordings" in Profile → About, policy text |
 | 5.1.1(v) Account deletion | An app that lets people create an account must let them delete it in the app | Profile → Account → Delete account, confirmed, calls the `delete_user` function in `supabase/schema.sql`, which removes the user and all server data |
 | 4.8 Sign in with Apple | Offered whenever a third-party login is offered; equivalent, privacy-respecting | Native "Continue with Apple" button (`expo-apple-authentication`) next to Google on the create-account and sign-in screens, email relay accepted |
@@ -92,7 +92,7 @@ Connect. Work through the second list before pressing Submit.
 
     > No account is needed. Tap "Today's talk", agree to the data-sharing notice,
     > allow the microphone, and speak for about a minute. The recording is sent
-    > to NVIDIA's AI model service for transcription and coaching; the consent
+    > to a third-party AI service for transcription and coaching; the consent
     > screen explains this and Profile → About allows withdrawal. Scoring
     > needs a network connection. Feedback is AI-generated and labelled as such.
     > An account is required; sign in with Apple, Google or email on the first

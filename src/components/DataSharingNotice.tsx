@@ -15,12 +15,12 @@ const POINTS: { icon: IconName; title: string; body: string }[] = [
   {
     icon: 'cloud-upload-outline',
     title: `Audio is sent to ${SPEECH_SERVICE_NAME}`,
-    body: 'The recording is sent there to be turned into text, and the text is sent again so an AI coach can give feedback. The service processes it under its own privacy policy.',
+    body: 'The recording is sent there to be turned into text, and the text is sent again so an AI coach can give feedback. The service processes it only to return the result, under its own privacy policy.',
   },
   {
     icon: 'eye-off-outline',
     title: 'Nothing else leaves the phone',
-    body: 'No analytics, no advertising, no tracking. An account is optional and never holds your talks. Only what you say during a talk is sent, and only after you agree.',
+    body: 'No analytics, no advertising, no tracking. Your account never holds your talks. Only what you say during a talk is sent, and only after you agree.',
   },
 ];
 
