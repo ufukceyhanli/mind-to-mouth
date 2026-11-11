@@ -201,6 +201,8 @@ main { flex: 1; padding: 24px 20px 64px; }
 .button.secondary:hover { background: var(--surface); }
 .button.ghost { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); box-shadow: none; }
 .button.ghost:hover { background: var(--accent-soft); }
+.button.soon { background: var(--surface-alt); color: var(--muted); box-shadow: none; cursor: default; }
+.button.soon:hover { background: var(--surface-alt); transform: none; }
 .button.small { min-height: 42px; padding: 0 20px; font-size: 15px; box-shadow: none; white-space: nowrap; }
 .button-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 24px; }
 .button-row.center { justify-content: center; }

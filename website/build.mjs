@@ -13,9 +13,36 @@ const outDir = join(here, 'public');
 const SITE = {
   name: 'Mind to Mouth',
   url: 'https://mind-to-mouth.web.app',
-  repo: 'https://github.com/ufukceyhanli/mind-to-mouth',
-  issues: 'https://github.com/ufukceyhanli/mind-to-mouth/issues',
+  // Fill these in when they exist. Empty means "not yet": the pages then show
+  // a "coming soon" pill instead of a download button and say that contact
+  // details will follow. Keep SUPPORT_EMAIL in step with src/links.ts.
+  appStoreUrl: '',
+  supportEmail: '',
 };
+
+// Page fragments that depend on the two optional values above.
+function appButton(extraClass = '') {
+  return SITE.appStoreUrl
+    ? `<a class="button ${extraClass}" href="${SITE.appStoreUrl}">Download on the App Store</a>`
+    : `<span class="button soon ${extraClass}">Coming soon to the App Store</span>`;
+}
+function contactLink(text) {
+  return SITE.supportEmail
+    ? `<a href="mailto:${SITE.supportEmail}">${text ?? SITE.supportEmail}</a>`
+    : `<em>${text ?? 'contact details'}</em>`;
+}
+const CONTACT_PARAGRAPH = SITE.supportEmail
+  ? `<p>Email <a href="mailto:${SITE.supportEmail}">${SITE.supportEmail}</a>. Replies usually come within a few days. Leave out anything personal from a transcript when you paste it.</p>`
+  : `<p>A support email address will be published here shortly. Until then, the app's own controls cover everything that matters: withdrawing consent, deleting talks and deleting your account all work inside the app without contacting anyone.</p>`;
+
+/** Replaces {{app_button}}, {{app_button_small}}, {{contact_paragraph}} and {{contact:Text}} in a page. */
+function fill(html) {
+  return html
+    .replace(/\{\{app_button_small\}\}/g, () => appButton('small'))
+    .replace(/\{\{app_button\}\}/g, () => appButton())
+    .replace(/\{\{contact_paragraph\}\}/g, () => CONTACT_PARAGRAPH)
+    .replace(/\{\{contact:([^}]+)\}\}/g, (_, text) => contactLink(text));
+}
 
 // ---- Markdown (the subset PRIVACY.md uses) ---------------------------------
 
@@ -122,12 +149,12 @@ function layout({ title, description, path, body, wide = false }) {
       <nav aria-label="Site">
         ${nav}
       </nav>
-      <a class="button small header-cta" href="${SITE.repo}">Get the app</a>
+      <span class="header-cta">${appButton("small")}</span>
     </div>
   </header>
 
   <main class="container${wide ? ' wide' : ''}">
-${body}
+${fill(body)}
   </main>
 
   <footer class="site-footer">
@@ -136,7 +163,6 @@ ${body}
       <nav aria-label="Footer">
         <a href="/privacy">Privacy policy</a>
         <a href="/support">Support</a>
-        <a href="${SITE.repo}">Source on GitHub</a>
       </nav>
     </div>
   </footer>

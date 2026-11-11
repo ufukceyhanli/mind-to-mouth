@@ -50,4 +50,4 @@ If the way the app handles data changes, this page will be updated and the date 
 
 ## Contact
 
-Questions, problems with the AI coach's feedback, or anything else: see the help page at <https://mind-to-mouth.web.app/support> or open an issue at <https://github.com/ufukceyhanli/mind-to-mouth/issues>.
+Questions, problems with the AI coach's feedback, or anything else: see the help page at <https://mind-to-mouth.web.app/support>, which also carries the contact details.
