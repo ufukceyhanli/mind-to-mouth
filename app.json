@@ -9,7 +9,7 @@
     "userInterfaceStyle": "light",
     "backgroundColor": "#FDF4EA",
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.mindtomouth.app",
       "usesAppleSignIn": true,
       "infoPlist": {
