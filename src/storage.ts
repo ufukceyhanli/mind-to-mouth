@@ -1,12 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as SecureStore from 'expo-secure-store';
 
 import { deleteRecording } from './recordings';
 import { DEFAULT_SETTINGS, type Session, type Settings } from './types';
 
 const SESSIONS_KEY = 'mtm.sessions.v1';
 const SETTINGS_KEY = 'mtm.settings.v1';
-const NVIDIA_KEY = 'mtm_nvidia_api_key';
 const CONSENT_KEY = 'mtm.consent.v1';
 
 // ---- Sessions -------------------------------------------------------------
@@ -57,11 +55,11 @@ export async function deleteAllSessions(): Promise<void> {
 
 // ---- Data-sharing consent ---------------------------------------------------
 //
-// Recordings go to a third-party AI service. Apple requires explicit
-// permission before that happens, and a way to take it back, so the date of
-// agreement is kept and cleared on request.
+// The text of each talk goes to a third-party AI service for coaching. Apple
+// requires explicit permission before that happens, and a way to take it
+// back, so the date of agreement is kept and cleared on request.
 
-/** ISO date the user agreed to send recordings to the speech service, or null. */
+/** ISO date the user agreed to send transcripts to the coach, or null. */
 export async function getDataSharingConsent(): Promise<string | null> {
   try {
     return await AsyncStorage.getItem(CONSENT_KEY);
@@ -77,21 +75,22 @@ export async function setDataSharingConsent(agreed: boolean): Promise<void> {
 
 // ---- Settings -------------------------------------------------------------
 
-/** Models that build.nvidia.com has retired; a saved reference falls back to the default. */
-const RETIRED_MODELS = new Set(['google/gemma-3n-e4b-it']);
-
 export async function loadSettings(): Promise<Settings> {
   try {
     const raw = await AsyncStorage.getItem(SETTINGS_KEY);
     if (!raw) return DEFAULT_SETTINGS;
-    const stored = JSON.parse(raw) as Partial<Settings>;
-    if (stored.transcribeModel && RETIRED_MODELS.has(stored.transcribeModel)) {
-      delete stored.transcribeModel;
-    }
-    if (stored.coachModel && RETIRED_MODELS.has(stored.coachModel)) {
-      delete stored.coachModel;
-    }
-    return { ...DEFAULT_SETTINGS, ...stored };
+    // Only known keys are kept, so fields from older builds (model ids) drop out.
+    const stored = JSON.parse(raw) as Partial<Record<keyof Settings, unknown>>;
+    const num = (v: unknown, fallback: number) => (typeof v === 'number' && Number.isFinite(v) ? v : fallback);
+    return {
+      minSeconds: num(stored.minSeconds, DEFAULT_SETTINGS.minSeconds),
+      maxSeconds: num(stored.maxSeconds, DEFAULT_SETTINGS.maxSeconds),
+      prepSeconds: num(stored.prepSeconds, DEFAULT_SETTINGS.prepSeconds),
+      checkPronunciation:
+        typeof stored.checkPronunciation === 'boolean'
+          ? stored.checkPronunciation
+          : DEFAULT_SETTINGS.checkPronunciation,
+    };
   } catch {
     return DEFAULT_SETTINGS;
   }
@@ -100,41 +99,6 @@ export async function loadSettings(): Promise<Settings> {
 export async function saveSettings(settings: Settings): Promise<void> {
   await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
 }
-
-// ---- API keys (kept in the device keychain, never in plain storage) --------
-
-async function getSecret(key: string): Promise<string | null> {
-  try {
-    return await SecureStore.getItemAsync(key);
-  } catch {
-    return null;
-  }
-}
-
-async function setSecret(key: string, value: string): Promise<void> {
-  const trimmed = value.trim();
-  if (trimmed.length === 0) {
-    await SecureStore.deleteItemAsync(key);
-  } else {
-    await SecureStore.setItemAsync(key, trimmed);
-  }
-}
-
-// A key baked in at build time from .env (EXPO_PUBLIC_NVIDIA_API_KEY). Lets a
-// personal build skip the setup screen entirely. A key saved in Settings wins.
-const BUNDLED_NVIDIA_KEY = (process.env.EXPO_PUBLIC_NVIDIA_API_KEY ?? '').trim() || null;
-
-export const hasBundledNvidiaKey = BUNDLED_NVIDIA_KEY !== null;
-
-/** The key the user typed in Settings, or null if they never did. */
-export const getStoredNvidiaKey = () => getSecret(NVIDIA_KEY);
-
-/** The key to use for API calls: the stored override, else the bundled one. */
-export async function getNvidiaKey(): Promise<string | null> {
-  return (await getSecret(NVIDIA_KEY)) ?? BUNDLED_NVIDIA_KEY;
-}
-
-export const setNvidiaKey = (v: string) => setSecret(NVIDIA_KEY, v);
 
 // ---- Derived stats --------------------------------------------------------
 

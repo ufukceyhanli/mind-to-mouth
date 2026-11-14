@@ -13,7 +13,7 @@
       "bundleIdentifier": "com.mindtomouth.app",
       "usesAppleSignIn": true,
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "Mind to Mouth records your talk so it can be transcribed and scored. Recordings are only sent to the speech service after you agree."
+        "NSMicrophoneUsageDescription": "Mind to Mouth records your talk so it can be turned into text on this phone and scored. Audio never leaves your phone."
       },
       "buildNumber": "1",
       "config": {
@@ -23,7 +23,7 @@
         "NSPrivacyTracking": false,
         "NSPrivacyCollectedDataTypes": [
           {
-            "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeAudioData",
+            "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeOtherUserContent",
             "NSPrivacyCollectedDataTypeLinked": false,
             "NSPrivacyCollectedDataTypeTracking": false,
             "NSPrivacyCollectedDataTypePurposes": [
@@ -87,7 +87,14 @@
       [
         "expo-audio",
         {
-          "microphonePermission": "Mind to Mouth records your talk so it can be transcribed and scored. Recordings are only sent to the speech service after you agree."
+          "microphonePermission": "Mind to Mouth records your talk so it can be turned into text on this phone and scored. Audio never leaves your phone."
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Mind to Mouth records your talk so it can be turned into text on this phone and scored. Audio never leaves your phone.",
+          "speechRecognitionPermission": "Mind to Mouth turns your talk into text on this phone so it can be scored. Audio never leaves your phone."
         }
       ],
       "expo-secure-store",

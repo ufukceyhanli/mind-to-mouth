@@ -5,24 +5,23 @@ seconds to think, then you talk for at least two minutes. The recording is
 transcribed, scored, and reviewed by an AI coach so you can watch yourself get
 better at thinking out loud.
 
-Everything runs on free models from [build.nvidia.com](https://build.nvidia.com).
-One API key. An account is required: the app opens on a welcome carousel and
-nothing else is reachable until you sign up or sign in (see *Accounts* below).
+Serving it costs nothing: speech to text runs on the phone with Apple's
+Speech framework, and the coach is a Cloudflare Worker on the Workers AI free
+allocation. There is no model key in the app. An account is required: the app
+opens on a welcome carousel and nothing else is reachable until you sign up or
+sign in (see *Accounts* below).
 
-## Run it in Expo Go
+## Run it
 
 ```bash
 npm install
-npx expo start
+cp .env.example .env        # Supabase keys, plus EXPO_PUBLIC_COACH_URL once the Worker is deployed
+npx expo run:ios            # development build; Expo Go cannot load expo-speech-recognition
 ```
 
-Scan the QR code with the Camera app on your iPhone. Everything the app uses
-(`expo-audio`, `expo-secure-store`, `expo-router`, …) ships inside Expo Go, so
-no development build is needed.
-
-On first launch, open **Settings** (gear icon) and paste your NVIDIA API key
-(`nvapi-…`, from *Get API Key* on any model page at build.nvidia.com). It is
-stored in the iOS keychain and only ever sent to `integrate.api.nvidia.com`.
+Without `EXPO_PUBLIC_COACH_URL` the app still works: talks are transcribed and
+scored by the on-device rubric, and the coach card says the build has no
+coach. Deploy the Worker in [`worker/`](worker/README.md) to turn coaching on.
 
 ## Free plan and Plus
 
@@ -61,24 +60,22 @@ setup is in `website/README.md`.
 3. **Talk** – the clock counts down from 2:00. *Finish* only unlocks when you reach the target, then counts up. The screen stays awake, the mic level pulses, and you get a haptic tap at the two-minute mark. Recording auto-stops at the cap (default 5 min).
 4. **Score** – the audio is transcribed, scored on-device, sent to the coach, then saved.
 
-## How the audio gets to the model
+## How a talk becomes text
 
-NVIDIA's hosted speech models (Parakeet, Canary, Whisper) are gRPC-only, which
-a phone app in Expo Go cannot speak. Instead the app uses an audio-capable chat
-model over plain HTTPS:
-
-- The phone records **uncompressed 16 kHz mono WAV**.
-- On-device, the talk is **split at quiet moments** into chunks of roughly
-  12 seconds (the model accepts up to 30 s of audio per request), so words are
-  not cut in half.
-- Each chunk is compressed to **IMA ADPCM WAV** (4 bits per sample, about a
-  quarter of the size), which every server-side audio decoder understands, and
-  sent inline as a `data:audio/wav;base64,…` URL to `/v1/chat/completions`
-  with the model `google/gemma-3n-e4b-it`. Three chunks are in flight at a time.
-- The transcripts are stitched back together. The longest pause is measured
-  directly from the waveform's energy envelope.
-
-Everything in `src/audio.ts` is pure TypeScript with no native dependency.
+- The phone records **uncompressed 16 kHz mono WAV**, the format Apple's
+  recognizer reads from a file.
+- `src/transcribe.ts` feeds the file to the system recognizer through
+  [`expo-speech-recognition`](https://github.com/jamsch/expo-speech-recognition)
+  with `requiresOnDeviceRecognition` on, so the audio never leaves the phone and
+  there is no per-request length limit. On the rare device without an offline
+  English model it falls back to Apple's speech service.
+- iOS 18+ finalises each utterance separately; the final results are
+  concatenated in order. Each word comes back with its timestamp and a
+  confidence, which feed the pace-over-time measure and the pronunciation
+  check.
+- Pauses, loudness and speaking time per 15-second stretch are measured
+  directly from the waveform's energy envelope (`src/audio.ts`, pure
+  TypeScript).
 
 ## Scoring
 
@@ -95,15 +92,16 @@ The on-device rubric is deterministic and explains every point:
 | On topic | 15 | How often the prompt word (or a form of it) came up |
 | Flow | 10 | Longest silence, measured from the audio |
 
-Then the coach model, `nvidia/nemotron-3-ultra-550b-a55b` (NVIDIA's most
-capable open model), reads the transcript and returns JSON with three content
-scores (coherence, structure, relevance, each 0–10), two or three strengths,
-two or three improvements, and a drill for tomorrow. The final score is
+Then the coach reads the transcript and returns three content scores
+(coherence, structure, relevance, each 0–10), two or three strengths, two or
+three improvements, and a drill for tomorrow. The final score is
 **60 % rubric + 40 % coach**. If the coach call fails, the rubric alone is
 shown with the error.
 
-Both model ids can be changed in Settings, so you can swap in any newer
-audio-capable or text model from the catalog without a code change.
+The coach is the Cloudflare Worker in [`worker/`](worker/README.md). It owns
+the prompt and the model (Llama 3.3 70B on Workers AI by default), rate-limits
+by IP, and optionally checks a shared app token. The app sends only the
+transcript and the measured stats.
 
 ## Project layout
 
@@ -127,12 +125,15 @@ src/
   auth/supabase.ts   Supabase client, encrypted session storage, link parsing
   auth/AuthProvider.tsx  session state, sign-in methods, account deletion
   words.ts           prompt bank + picker
-  audio.ts           WAV parsing, pause analysis, quiet-point chunking, ADPCM encoder
-  nvidia.ts          chat-completions client: transcription + coaching
+  audio.ts           WAV parsing, pause, volume and speaking-time analysis
+  transcribe.ts      on-device speech recognition (words, timings, confidence)
+  coach.ts           client for the coaching Worker
+  pronunciation.ts   on-device "worth a listen" pass from word confidences
   scoring.ts         rubric and score blending
-  storage.ts         AsyncStorage sessions/settings, SecureStore key, streaks
+  storage.ts         AsyncStorage sessions/settings/consent, streaks
   theme.ts           design tokens: colours, Lato type scale, radii, shadow
   components/        small UI kit (buttons, cards, chips, pill rows, covers)
+worker/              Cloudflare Worker: coaching on Workers AI (free allocation)
 ```
 
 ## Development
@@ -140,28 +141,30 @@ src/
 ```bash
 npm run typecheck   # tsc --noEmit
 npm run lint        # expo lint
-npx expo export --platform ios   # prove the bundle builds
+npx expo prebuild --platform ios --clean   # regenerate ios/ after plugin changes
+(cd worker && npm run typecheck)
 ```
 
 ## Notes and limits
 
-- Inline payloads on the NVIDIA endpoint are capped around 180 KB, which is
-  why chunks are kept to about 14 s at most. A 5-minute talk is ~25 requests.
-- Speech-to-text models often clean up "um" and "uh" on their own, so the
-  fluency score is kinder than a human listener would be. The coach prompt
-  knows this and focuses on content.
-- The result screen runs a second pass over the same audio chunks with the
-  speech-to-text model, asking which words sounded off. Each flagged word
-  gets a tip, a "Hear it" button (system voice via expo-speech) and a
-  "Hear yours" button that plays that moment of the saved recording. The
-  model's picks are suggestions, not phoneme scores. Turn the pass off in
-  Settings to halve the audio requests.
+- Apple's recognizer drops most "um" and "uh" on its own, so the fluency score
+  is kinder than a human listener would be. The coach prompt knows this and
+  focuses on content.
+- Workers AI's free allocation covers roughly 70 coaching calls a day on the
+  default model; past that the Worker returns 503 and the app shows the rubric
+  score with a note. See `worker/README.md` for cheaper models.
+- The result screen (Plus) runs the saved recording through the on-device
+  recognizer once more and flags the words it was least sure of. Each flagged
+  word gets a "Hear it" button (system voice via expo-speech) and a "Hear
+  yours" button that plays that moment of the saved recording. Confidence
+  reflects how clearly a word came through, not accent, and some devices
+  report none at all, in which case the card says so.
 - After scoring, the recording is moved into the app's documents folder
   (`recordings/<session id>.wav`) so each talk can be played back from its
   result screen. Deleting a talk from History removes its audio too. The
   transcript and scores live in AsyncStorage on the device.
-- Android's recorder cannot write WAV, so on Android the whole AAC file is sent
-  in one request; long talks will exceed the inline limit there. iOS is the
+- Android's recorder cannot write WAV, and Android's file recognition expects
+  16 kHz PCM, so transcription from the AAC file is untested there. iOS is the
   focus.
 
 ## Accounts

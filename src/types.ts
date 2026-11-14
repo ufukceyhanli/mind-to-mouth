@@ -1,11 +1,11 @@
 import type { VolumeStats } from './audio';
 
-/** One transcribed audio chunk: how many words were said, over how long. */
+/** One stretch of the talk: how many words were said, over how long. */
 export type SpeechSegment = {
   words: number;
-  /** Wall-clock length of the chunk. */
+  /** Wall-clock length of the stretch. */
   durationSec: number;
-  /** Seconds of actual speech in the chunk (silences removed). */
+  /** Seconds of actual speech in the stretch (silences removed). */
   speechSec: number;
 };
 
@@ -13,9 +13,9 @@ export type Transcription = {
   text: string;
   /** Longest silence in the recording, measured from the audio itself. */
   longestPauseSec: number | null;
-  /** How many audio chunks were sent for transcription. */
-  chunkCount: number;
-  /** Per-chunk word counts and durations, in order; empty when unknown. */
+  /** True when speech recognition ran fully on the phone. */
+  onDevice: boolean;
+  /** Word counts and durations per stretch of the talk, in order; empty when unknown. */
   segments: SpeechSegment[];
   /** Loudness over the talk, measured from the audio; null when unknown. */
   volume: VolumeStats | null;
@@ -62,11 +62,11 @@ export type CoachFeedback = {
 export type PronunciationIssue = {
   /** The word the speaker meant. */
   word: string;
-  /** What it sounded like. */
+  /** What it sounded like; empty when the check cannot tell. */
   heard: string;
   /** One short sentence on how to say it. */
   tip: string;
-  /** Seconds from the start of the talk, or null when the model gave none. */
+  /** Seconds from the start of the talk, or null when unknown. */
   atSec: number | null;
 };
 
@@ -110,11 +110,7 @@ export type Settings = {
   maxSeconds: number;
   /** Thinking time between seeing the word and recording, in seconds. */
   prepSeconds: number;
-  /** build.nvidia.com model id used to turn audio into text. */
-  transcribeModel: string;
-  /** build.nvidia.com model id used for coaching and content scores. */
-  coachModel: string;
-  /** Run a second pass over the audio to flag words worth practising. */
+  /** Run a second pass over the recording to flag words worth practising. */
   checkPronunciation: boolean;
 };
 
@@ -122,7 +118,5 @@ export const DEFAULT_SETTINGS: Settings = {
   minSeconds: 120,
   maxSeconds: 300,
   prepSeconds: 10,
-  transcribeModel: 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning',
-  coachModel: 'nvidia/nemotron-3-ultra-550b-a55b',
   checkPronunciation: true,
 };

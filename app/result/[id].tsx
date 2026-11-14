@@ -167,8 +167,8 @@ export default function ResultScreen() {
             <SectionTitle>Worth a listen</SectionTitle>
             <Card style={{ gap: spacing.sm }}>
               <Muted>
-                With Plus, the coach listens again for words worth a second try and plays them next
-                to your own attempt.
+                With Plus, the app listens to the talk again on your phone, flags the words that
+                came through least clearly and plays them next to your own attempt.
               </Muted>
               <Link onPress={() => router.push('/plus')}>See Plus</Link>
             </Card>

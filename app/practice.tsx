@@ -18,36 +18,36 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   analyzePauses,
-  chunksForUpload,
-  encodeImaAdpcmWav,
   isWav,
   measureVolume,
   parseWav,
   speechSecondsByChunk,
+  splitIntoWindows,
+  type PcmAudio,
   type VolumeStats,
 } from '../src/audio';
+import { coachConfigured, describeCoachError, getCoachFeedback } from '../src/coach';
 import { DataSharingNotice } from '../src/components/DataSharingNotice';
 import { Badge, BottomActions, Button, Card, MicDisc, Muted } from '../src/components/ui';
-import {
-  MAX_INLINE_BASE64_CHARS,
-  describeNvidiaError,
-  getCoachFeedback,
-  transcribeChunks,
-} from '../src/nvidia';
 import { usePlan } from '../src/plan/PlanProvider';
 import { effectiveMaxSeconds, freeTalksLeft } from '../src/plan/limits';
 import { loadUsage, recordTalk } from '../src/plan/usage';
 import { persistRecording } from '../src/recordings';
-import { blendScore, scoreTalk, tokenize } from '../src/scoring';
+import { blendScore, scoreTalk } from '../src/scoring';
 import {
   getDataSharingConsent,
-  getNvidiaKey,
   loadSessions,
   loadSettings,
   saveSession,
   setDataSharingConsent,
 } from '../src/storage';
 import { colors, formatClock, radius, spacing, type } from '../src/theme';
+import {
+  describeTranscriptionError,
+  requestSpeechPermission,
+  transcribeFile,
+  type RecognizedWord,
+} from '../src/transcribe';
 import {
   DEFAULT_SETTINGS,
   type CoachFeedback,
@@ -62,6 +62,7 @@ type Phase =
   | 'loading'
   | 'consent'
   | 'no-permission'
+  | 'no-speech-permission'
   | 'reveal'
   | 'recording'
   | 'processing'
@@ -70,9 +71,8 @@ type Phase =
 type Recorded = { uri: string; durationSec: number };
 
 /**
- * Uncompressed 16 kHz mono WAV. We compress it ourselves afterwards (IMA
- * ADPCM) because that format is decodable by every server-side audio stack,
- * unlike AAC, and lets us cut the talk at quiet moments before upload.
+ * Uncompressed 16 kHz mono WAV: the format Apple's recognizer reads from a
+ * file, and easy to analyse for pauses and loudness on-device.
  */
 const WAV_RECORDING: RecordingOptions = {
   extension: '.wav',
@@ -88,13 +88,33 @@ const WAV_RECORDING: RecordingOptions = {
     linearPCMIsFloat: false,
   },
   android: {
-    // Android's recorder cannot write WAV; this file is sent as-is instead.
+    // Android's recorder cannot write WAV; the recognizer gets this file as-is.
     extension: '.m4a',
     outputFormat: 'mpeg4',
     audioEncoder: 'aac',
   },
   web: { mimeType: 'audio/wav' },
 };
+
+/** Length of the stretches the pace-over-time measure is taken on. */
+const PACE_WINDOW_SEC = 15;
+
+/**
+ * Words per stretch of the talk, from the recognizer's word timestamps, next
+ * to the seconds of actual speech in that stretch from the audio.
+ */
+function buildSegments(pcm: PcmAudio, words: RecognizedWord[]): SpeechSegment[] {
+  const windows = splitIntoWindows(pcm, PACE_WINDOW_SEC);
+  const speechSec = speechSecondsByChunk(pcm, windows);
+  let startSec = 0;
+  return windows.map((w, i) => {
+    const durationSec = w.samples.length / pcm.sampleRate;
+    const endSec = startSec + durationSec;
+    const count = words.filter((word) => word.startSec >= startSec && word.startSec < endSec).length;
+    startSec = endSec;
+    return { words: count, durationSec, speechSec: speechSec[i] ?? durationSec };
+  });
+}
 
 export default function PracticeScreen() {
   useKeepAwake();
@@ -122,19 +142,24 @@ export default function PracticeScreen() {
   const startAtRef = useRef<number | null>(null);
   const reachedMinRef = useRef(false);
   const finishingRef = useRef(false);
-  const apiKeyRef = useRef<string | null>(null);
 
   // ---- Setup ---------------------------------------------------------------
 
   const cancelledRef = useRef(false);
 
-  // Asks for the microphone, then shows the word. Runs once the user has
-  // agreed to the recording being sent off the phone.
+  // Asks for the microphone and speech recognition, then shows the word.
+  // Runs once the user has agreed to the transcript going to the coach.
   const beginSession = useCallback(async () => {
     const permission = await requestRecordingPermissionsAsync();
     if (cancelledRef.current) return;
     if (!permission.granted) {
       setPhase('no-permission');
+      return;
+    }
+    const speechAllowed = await requestSpeechPermission();
+    if (cancelledRef.current) return;
+    if (!speechAllowed) {
+      setPhase('no-speech-permission');
       return;
     }
     await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
@@ -148,10 +173,9 @@ export default function PracticeScreen() {
     if (!plan.ready) return;
     cancelledRef.current = false;
     (async () => {
-      const [loadedSettings, sessions, apiKey, consent, usage] = await Promise.all([
+      const [loadedSettings, sessions, consent, usage] = await Promise.all([
         loadSettings(),
         loadSessions(),
-        getNvidiaKey(),
         getDataSharingConsent(),
         loadUsage(),
       ]);
@@ -162,7 +186,6 @@ export default function PracticeScreen() {
         router.replace('/plus');
         return;
       }
-      apiKeyRef.current = apiKey;
       recentWordsRef.current = sessions.slice(0, 30).map((s) => s.word);
       setSettings(loadedSettings);
       setPrepLeft(loadedSettings.prepSeconds);
@@ -207,53 +230,45 @@ export default function PracticeScreen() {
     async (rec: Recorded, topic: string, currentSettings: Settings) => {
       setPhase('processing');
       try {
-        const apiKey = apiKeyRef.current;
-        if (!apiKey) {
-          throw new Error('The app has no access key. Add one in Settings to get transcripts.');
-        }
-
-        setStatusText('Preparing audio…');
-        const bytes = await new File(rec.uri).bytes();
-
-        let chunks: Uint8Array[];
-        let chunkSeconds: number[] = [];
-        let chunkSpeechSeconds: number[] = [];
+        setStatusText('Measuring the audio…');
+        let pcm: PcmAudio | null = null;
         let longestPauseSec: number | null = null;
         let volume: VolumeStats | null = null;
-        if (isWav(bytes)) {
-          const pcm = parseWav(bytes);
-          longestPauseSec = analyzePauses(pcm).longestPauseSec;
-          volume = measureVolume(pcm);
-          const pcmChunks = chunksForUpload(pcm, MAX_INLINE_BASE64_CHARS);
-          chunks = pcmChunks.map((c) => encodeImaAdpcmWav(c));
-          chunkSeconds = pcmChunks.map((c) => c.samples.length / pcm.sampleRate);
-          chunkSpeechSeconds = speechSecondsByChunk(pcm, pcmChunks);
-        } else {
-          // Non-WAV (Android AAC): send the whole file in one go.
-          chunks = [bytes];
+        try {
+          const bytes = await new File(rec.uri).bytes();
+          if (isWav(bytes)) {
+            pcm = parseWav(bytes);
+            longestPauseSec = analyzePauses(pcm).longestPauseSec;
+            volume = measureVolume(pcm);
+          }
+        } catch {
+          // Pause and volume measures are extras; the transcript is what matters.
         }
 
-        setStatusText(`Transcribing… 0/${chunks.length}`);
-        const { text, parts } = await transcribeChunks({
-          apiKey,
-          model: currentSettings.transcribeModel,
-          chunks,
-          onProgress: (done, total) => setStatusText(`Transcribing… ${done}/${total}`),
-          onRetry: (attempt, max) => setStatusText(`The service is busy, retrying… (${attempt}/${max})`),
-        });
+        setStatusText('Transcribing on your phone…');
+        let transcribed;
+        try {
+          transcribed = await transcribeFile({
+            uri: rec.uri,
+            durationSec: rec.durationSec,
+            onProgress: (soFar) => {
+              const words = soFar.split(/\s+/).filter(Boolean).length;
+              if (words > 0) setStatusText(`Transcribing on your phone… ${words} words`);
+            },
+          });
+        } catch (e) {
+          throw new Error(describeTranscriptionError(e));
+        }
+        const text = transcribed.text;
         if (text.length === 0) {
           throw new Error('No speech was recognised. Check the microphone and try again.');
         }
-        // Words per chunk against its speaking time gives the pace over time.
-        const segments: SpeechSegment[] = chunkSeconds.map((durationSec, i) => ({
-          words: tokenize(parts[i] ?? '').length,
-          durationSec,
-          speechSec: chunkSpeechSeconds[i] ?? durationSec,
-        }));
+        // Words per stretch against its speaking time gives the pace over time.
+        const segments: SpeechSegment[] = pcm ? buildSegments(pcm, transcribed.words) : [];
         const transcription: Transcription = {
           text,
           longestPauseSec,
-          chunkCount: chunks.length,
+          onDevice: transcribed.onDevice,
           segments,
           volume,
         };
@@ -268,18 +283,20 @@ export default function PracticeScreen() {
 
         let coach: CoachFeedback | null = null;
         let coachError: string | null = null;
-        setStatusText('Asking your coach…');
-        try {
-          coach = await getCoachFeedback({
-            apiKey,
-            model: currentSettings.coachModel,
-            topic,
-            transcript: text,
-            durationSec: rec.durationSec,
-            rubric,
-          });
-        } catch (e) {
-          coachError = describeNvidiaError(e);
+        if (coachConfigured) {
+          setStatusText('Asking your coach…');
+          try {
+            coach = await getCoachFeedback({
+              topic,
+              transcript: text,
+              durationSec: rec.durationSec,
+              rubric,
+            });
+          } catch (e) {
+            coachError = describeCoachError(e);
+          }
+        } else {
+          coachError = 'This build has no coach configured.';
         }
 
         const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -305,7 +322,7 @@ export default function PracticeScreen() {
           audioFile,
           // Checked lazily by the result screen so the score is not held up.
           pronunciation: {
-            // A Plus feature: it doubles the audio sent for each talk.
+            // A Plus feature. Runs on the phone when the result is first opened.
             status:
               planRef.current.isPlus && currentSettings.checkPronunciation && audioFile
                 ? 'pending'
@@ -321,7 +338,7 @@ export default function PracticeScreen() {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         router.replace({ pathname: '/result/[id]', params: { id: session.id } });
       } catch (e) {
-        setErrorText(describeNvidiaError(e));
+        setErrorText(e instanceof Error ? e.message : 'Something went wrong while scoring.');
         setPhase('error');
       }
     },
@@ -426,8 +443,8 @@ export default function PracticeScreen() {
         <ScrollView contentContainerStyle={styles.consentContent}>
           <Text style={styles.heading}>Before your first talk</Text>
           <Muted style={styles.centeredText}>
-            Mind to Mouth needs to send your recording to an AI service to score it. Here is
-            exactly what happens.
+            Your talk is turned into text on this phone. The text then goes to an AI coach for
+            feedback. Here is exactly what happens.
           </Muted>
           <Card>
             <DataSharingNotice />
@@ -444,14 +461,18 @@ export default function PracticeScreen() {
     );
   }
 
-  if (phase === 'no-permission') {
+  if (phase === 'no-permission' || phase === 'no-speech-permission') {
+    const speech = phase === 'no-speech-permission';
     return (
       <View style={container}>
         <View style={styles.center}>
-          <Text style={styles.heading}>Microphone needed</Text>
+          <Text style={styles.heading}>
+            {speech ? 'Speech recognition needed' : 'Microphone needed'}
+          </Text>
           <Muted style={styles.centeredText}>
-            Mind to Mouth cannot record a talk without the microphone. Allow it in iOS Settings,
-            then come back to practise.
+            {speech
+              ? 'iOS turns your talk into text on this phone, and that needs Speech Recognition. Allow it for Mind to Mouth in iOS Settings, then come back to practise.'
+              : 'Mind to Mouth cannot record a talk without the microphone. Allow it in iOS Settings, then come back to practise.'}
           </Muted>
         </View>
         <BottomActions>

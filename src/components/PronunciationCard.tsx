@@ -14,9 +14,9 @@ const SNIPPET_BEFORE = 1.2;
 const SNIPPET_AFTER = 1.5;
 
 /**
- * "Worth a listen" words for a talk. Kicks off the check itself when the
- * session still says pending, reports progress while it runs, and offers
- * two ways to hear each word: the system voice, and the speaker's own
+ * "Worth a listen" words for a talk. Kicks off the on-device check itself
+ * when the session still says pending, reports progress while it runs, and
+ * offers two ways to hear each word: the system voice, and the speaker's own
  * attempt from the saved recording.
  */
 export function PronunciationCard({
@@ -153,7 +153,8 @@ function IssueList({
   return (
     <Card style={{ gap: spacing.md }}>
       <Muted style={type.caption}>
-        These are suggestions from the model, not a measurement. Tap to compare.
+        Words the phone’s speech recognizer was least sure of. A hint, not a verdict on your
+        accent. Tap to compare.
       </Muted>
       {issues.map((issue, index) => {
         const canHearYours = uri !== null && issue.atSec !== null && playerStatus.isLoaded;

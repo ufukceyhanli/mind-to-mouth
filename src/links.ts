@@ -23,9 +23,10 @@ export const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/d
 export const MANAGE_SUBSCRIPTIONS_URL = 'https://apps.apple.com/account/subscriptions';
 
 /**
- * How the consent screen, Profile and the policy describe where recordings go.
- * Deliberately a category, not a vendor name: Apple asks for disclosure of
- * third-party AI processing, not for the provider to be named, and naming it
- * would give away the stack. Keep in step with PRIVACY.md.
+ * How the consent screen, Profile and the policy describe where the text of a
+ * talk goes for coaching. Deliberately a category, not a vendor name: Apple
+ * asks for disclosure of third-party AI processing, not for the provider to
+ * be named, and naming it would give away the stack. Keep in step with
+ * PRIVACY.md. Speech to text itself runs on the phone.
  */
-export const SPEECH_SERVICE_NAME = 'a third-party AI service';
+export const COACH_SERVICE_NAME = 'a third-party AI service';

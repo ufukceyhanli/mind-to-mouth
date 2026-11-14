@@ -1,12 +1,12 @@
 # Mind to Mouth privacy policy
 
-_Last updated: 11 November 2026_
+_Last updated: 14 November 2026_
 
 Mind to Mouth is a speaking-practice app made by Ufuk Ceyhanli, an individual developer. It gives you a random word, records you talking about it, and scores the talk. This page explains what the app does with your data. It is short because the app does very little with it.
 
 ## What the app collects
 
-**Your talk.** When you practise, the app records your voice through the microphone. It keeps the recording, the transcript, the scores and the coach's feedback on your phone so you can listen back and track progress.
+**Your talk.** When you practise, the app records your voice through the microphone. iOS turns the recording into text on your phone, using Apple's speech recognition; on most iPhones this happens entirely on the device, and where the device cannot do that, iOS sends the audio to Apple's speech service under Apple's terms. The app keeps the recording, the transcript, the scores and the coach's feedback on your phone so you can listen back and track progress.
 
 **Your account.** You need an account to use the app. When you create one, the app stores your email address (or, with Sign in with Apple or Google, the address they provide, which with Apple may be a private relay address), the time you signed up and last signed in, and an account identifier. With Sign in with Apple it also keeps the name Apple shares the first time, if you allow that. Nothing else is stored with the account: talks, recordings, transcripts and scores stay on your phone and are never uploaded to it.
 
@@ -16,17 +16,17 @@ Mind to Mouth is a speaking-practice app made by Ufuk Ceyhanli, an individual de
 
 ## What leaves your phone, and where it goes
 
-**To score a talk**, the app sends the recording to a third-party AI model provider, which turns the audio into text. The text of your talk is then sent to the same provider so an AI coach can write feedback. If you turn on the optional pronunciation check, the recording is sent once more for that purpose. The provider processes audio and text only to return these results to the app, under its own terms. The app has no control over how long it keeps request data.
+**To coach a talk**, the app sends the text of your talk and a few measured numbers (word count, pace, filler count) to a third-party AI model provider so an AI coach can write feedback. The recording itself is never sent. The provider processes the text only to return the result to the app, under its own terms. The app has no control over how long it keeps request data. The optional pronunciation check runs on your phone and sends nothing.
 
 **To sign you in**, your email address and password (or the identity token from Apple or Google) go to a hosted authentication provider, which creates and checks your session and stores the account details listed above. Sign in with Apple is handled by Apple under Apple's own terms, and Sign in with Google by Google under Google's.
 
-Those are the only places your data goes. Both providers act as service providers to the app: they are bound to protect your data at least as well as this policy describes, and they may not use it for their own purposes. The developer does not run a server, never receives your recordings, and cannot see your talks. The developer can see the list of account emails in the authentication provider's dashboard and uses it for nothing except deleting accounts on request. You can ask for the names of the providers through the contact details on the support page.
+Those are the only places your data goes. Both providers act as service providers to the app: they are bound to protect your data at least as well as this policy describes, and they may not use it for their own purposes. The coaching requests pass through a small relay run by the developer, which forwards them to the AI provider and keeps no copy. The developer never receives your recordings and cannot see your talks. The developer can see the list of account emails in the authentication provider's dashboard and uses it for nothing except deleting accounts on request. You can ask for the names of the providers through the contact details on the support page.
 
 ## Your permission
 
-The app asks for your explicit agreement, in plain words, before the first recording is sent. It will not record until you agree. You can withdraw that agreement at any time in **Profile → About → Withdraw**; the app will then ask again before the next talk and will not send anything until you agree again.
+The app asks for your explicit agreement, in plain words, before the first transcript is sent. It will not record until you agree. You can withdraw that agreement at any time in **Profile → About → Withdraw**; the app will then ask again before the next talk and will not send anything until you agree again.
 
-You can also turn off microphone access for the app in iOS Settings. The app cannot record without it.
+You can also turn off microphone or speech recognition access for the app in iOS Settings. The app cannot record or score a talk without them.
 
 ## Keeping and deleting your data
 
@@ -38,7 +38,7 @@ Recordings, transcripts and scores stay on your phone until you delete them. You
 
 **Profile → Account → Delete account** removes your account immediately, together with everything the authentication provider holds about it. Signing out keeps the account but removes the session from the phone. Deleting the app does not delete the account; sign in again and delete it, or ask through the support page. Deleting the account or the app does not cancel a Plus subscription: that is done in your App Store account settings.
 
-Apart from the account, the developer holds none of your data, so there is nothing else for the developer to delete on your behalf. Audio and text already processed by the AI provider are kept only as long as that provider needs to deliver the result and operate its service.
+Apart from the account, the developer holds none of your data, so there is nothing else for the developer to delete on your behalf. Text already processed by the AI provider is kept only as long as that provider needs to deliver the result and operate its service.
 
 ## Children
 

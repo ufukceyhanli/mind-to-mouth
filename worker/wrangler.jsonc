@@ -1,0 +1,26 @@
+// Cloudflare Worker that turns a talk transcript into coaching notes using
+// Workers AI. Runs inside the free allocation (10,000 neurons per day) and
+// needs no paid plan. See worker/README.md.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mind-to-mouth-coach",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "ai": { "binding": "AI" },
+  "observability": { "enabled": true },
+  "vars": {
+    // Any Workers AI text model. llama-3.3-70b supports JSON schema output and
+    // costs ~140 neurons per talk; "@cf/openai/gpt-oss-120b" is ~80 neurons.
+    "COACH_MODEL": "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+  },
+  // Per-IP rate limit so one abusive client cannot burn the daily allocation.
+  "ratelimits": [
+    {
+      "name": "COACH_LIMIT",
+      "namespace_id": "1001",
+      "simple": { "limit": 6, "period": 60 }
+    }
+  ]
+  // Secrets (set with `wrangler secret put`):
+  //   APP_TOKEN  optional shared token the app sends as `x-app-token`
+}

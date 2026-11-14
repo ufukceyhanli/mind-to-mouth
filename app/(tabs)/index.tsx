@@ -11,7 +11,6 @@ import { useAllowance } from '../../src/plan/useAllowance';
 import {
   Avatar,
   Badge,
-  Button,
   Card,
   HeroCard,
   MicDisc,
@@ -21,12 +20,7 @@ import {
   SectionHeader,
   SectionTitle,
 } from '../../src/components/ui';
-import {
-  computeStreak,
-  getNvidiaKey,
-  loadSessions,
-  practisedToday,
-} from '../../src/storage';
+import { computeStreak, loadSessions, practisedToday } from '../../src/storage';
 import { colors, radius, spacing, type } from '../../src/theme';
 import type { Session } from '../../src/types';
 
@@ -36,16 +30,16 @@ export default function HomeScreen() {
   const plan = usePlan();
   const allowance = useAllowance();
   const [sessions, setSessions] = useState<Session[]>([]);
-  const [hasKey, setHasOpenAIKey] = useState<boolean | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
       (async () => {
-        const [list, key] = await Promise.all([loadSessions(), getNvidiaKey()]);
+        const list = await loadSessions();
         if (cancelled) return;
         setSessions(list);
-        setHasOpenAIKey(Boolean(key));
+        setLoaded(true);
       })();
       return () => {
         cancelled = true;
@@ -90,11 +84,9 @@ export default function HomeScreen() {
 
       <HeroCard
         style={styles.pad}
-        disabled={hasKey === null}
-        accessibilityLabel={
-          hasKey === false ? 'Add your access key' : outOfTalks ? 'See Mind to Mouth Plus' : 'Start today’s talk'
-        }
-        onPress={() => router.push(hasKey === false ? '/settings' : outOfTalks ? '/plus' : '/practice')}
+        disabled={!loaded}
+        accessibilityLabel={outOfTalks ? 'See Mind to Mouth Plus' : 'Start today’s talk'}
+        onPress={() => router.push(outOfTalks ? '/plus' : '/practice')}
       >
         <View style={styles.heroRow}>
           <View style={styles.heroText}>
@@ -115,7 +107,7 @@ export default function HomeScreen() {
                     : 'Not yet today'}
               </Badge>
               <Text style={styles.heroLink}>
-                {hasKey === false ? 'Add your API key' : outOfTalks ? 'Get unlimited talks' : 'Start now'}{' '}
+                {outOfTalks ? 'Get unlimited talks' : 'Start now'}{' '}
                 <Ionicons name="arrow-forward" size={18} color={colors.white} />
               </Text>
             </View>
@@ -124,7 +116,7 @@ export default function HomeScreen() {
         </View>
       </HeroCard>
 
-      {onFreePlan && hasKey !== false && (
+      {onFreePlan && (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="See Mind to Mouth Plus"
@@ -140,19 +132,6 @@ export default function HomeScreen() {
           </View>
           <Ionicons name="chevron-forward" size={20} color={colors.muted} />
         </Pressable>
-      )}
-
-      {hasKey === false && (
-        <Card style={[styles.pad, styles.setupCard]}>
-          <SectionTitle style={{ fontSize: 20, lineHeight: 26 }}>
-            One thing before you start
-          </SectionTitle>
-          <Muted style={{ marginBottom: spacing.md }}>
-            Your talks are transcribed and coached by an AI service, so the app needs an access
-            key. It stays in your phone’s keychain.
-          </Muted>
-          <Button title="Add access key" icon="key-outline" onPress={() => router.push('/settings')} />
-        </Card>
       )}
 
       {sessions.length > 0 && (
@@ -186,7 +165,7 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {sessions.length === 0 && hasKey && (
+      {loaded && sessions.length === 0 && (
         <View style={styles.pad}>
           <SectionTitle>How it works</SectionTitle>
           <Card style={{ gap: spacing.sm }}>
@@ -233,7 +212,6 @@ const styles = StyleSheet.create({
   heroFooter: { alignItems: 'flex-start', gap: spacing.md, marginTop: spacing.lg },
   heroLink: { ...type.h3, fontSize: 18, color: colors.white },
   heroDisc: { alignSelf: 'center' },
-  setupCard: { borderWidth: 1.5, borderColor: colors.accentLight },
   plusRow: {
     flexDirection: 'row',
     alignItems: 'center',

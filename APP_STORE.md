@@ -9,14 +9,14 @@ Connect. Work through the second list before pressing Submit.
 | --- | --- | --- |
 | 5.1.1(i) Privacy policy | Link in App Store Connect **and** inside the app | `PRIVACY.md`, published at <https://mind-to-mouth.web.app/privacy> by the site in `website/`, linked from Profile → About and from the consent screen (`src/links.ts`) |
 | 5.1.1(ii) Permission | Consent for data collection, easy to withdraw | Consent screen before the first recording (`app/practice.tsx`), Withdraw in Profile → About |
-| 5.1.2(i) Third-party AI | Disclose where personal data goes, including third-party AI, and get explicit permission first | Consent screen says audio goes to a third-party AI service and what is sent; nothing is recorded or uploaded until "Agree and continue". Vendors are deliberately not named anywhere public (the guideline asks for disclosure, not names); the policy offers the names on request |
+| 5.1.2(i) Third-party AI | Disclose where personal data goes, including third-party AI, and get explicit permission first | Consent screen says the transcript goes to a third-party AI service and what is sent (text and stats, never audio; speech to text runs on the phone); nothing is recorded or uploaded until "Agree and continue". Vendors are deliberately not named anywhere public (the guideline asks for disclosure, not names); the policy offers the names on request |
 | 5.1.1(i) Deletion | Explain retention and how to delete | Swipe-left or long-press delete in Talks, "Delete talk" on a talk's screen, "Delete all talks and recordings" in Profile → About, policy text |
 | 5.1.1(v) Account deletion | An app that lets people create an account must let them delete it in the app | Profile → Account → Delete account, confirmed, calls the `delete_user` function in `supabase/schema.sql`, which removes the user and all server data |
 | 4.8 Sign in with Apple | Offered whenever a third-party login is offered; equivalent, privacy-respecting | Native "Continue with Apple" button (`expo-apple-authentication`) next to Google on the create-account and sign-in screens, email relay accepted |
 | 5.1.1(ii) Account required | Account creation may only be required when the app's core features need it | The app requires an account before anything else (welcome → create account or sign in). Be ready to explain in Review Notes why the core features need it, or Apple may push back |
 | 1.2 / 4.7 AI content | Report mechanism and published contact | "Report a problem" link under the coach card and "Contact" in Profile → About open the support page (or the support mailbox once `SUPPORT_EMAIL` in `src/links.ts` and `website/build.mjs` is set); the coach prompt forbids remarks about the person. The repository is private, so nothing user-facing may link to it |
-| 5.1.1(ii) Purpose strings | Explain the microphone use | `NSMicrophoneUsageDescription` in `app.json` says what is recorded and that it is only sent after agreement |
-| Privacy manifest | Declare collected data and required-reason APIs | `ios.privacyManifests` in `app.json`: Audio Data (not linked), Email Address and User ID (linked to the account, app functionality, not tracking) |
+| 5.1.1(ii) Purpose strings | Explain the microphone and speech recognition use | `NSMicrophoneUsageDescription` and `NSSpeechRecognitionUsageDescription` in `app.json` say the talk is recorded and transcribed on the phone and that audio never leaves it |
+| Privacy manifest | Declare collected data and required-reason APIs | `ios.privacyManifests` in `app.json`: Other User Content, i.e. the transcript (not linked), Email Address and User ID (linked to the account, app functionality, not tracking) |
 | Export compliance | `ITSAppUsesNonExemptEncryption` | `ios.config.usesNonExemptEncryption: false` (HTTPS only) |
 | 3.1.1 In-app purchase | Digital features must be sold through Apple's in-app purchase | Mind to Mouth Plus is an auto-renewable subscription bought with StoreKit (`expo-iap`, `src/plan/PlanProvider.tsx`). No other payment path exists |
 | 3.1.2 Subscriptions | Paywall shows name, length, price, what you get; restore; links to terms and privacy; ongoing value | `app/plus.tsx`: "Mind to Mouth Plus", monthly, the App Store's localised price, three benefits, auto-renew wording, **Restore purchases**, Terms of use (Apple's standard EULA) and Privacy policy links. The free plan keeps working without it |
@@ -32,8 +32,9 @@ Connect. Work through the second list before pressing Submit.
    `com.mindtomouth.app`.
 2. **Build and upload with EAS**: `npx eas-cli@latest build --platform ios
    --profile production` then `npx eas-cli@latest submit --platform ios`.
-   The `.env` key must be present where the build runs (an EAS secret named
-   `EXPO_PUBLIC_NVIDIA_API_KEY`). Bump `ios.buildNumber` in `app.json` for every
+   The `.env` values must be present where the build runs (EAS secrets named
+   `EXPO_PUBLIC_COACH_URL` and, if used, `EXPO_PUBLIC_COACH_TOKEN`; deploy the
+   Worker in `worker/` first). Bump `ios.buildNumber` in `app.json` for every
    upload.
 3. **Sign in with Apple capability.** In the Apple Developer portal, under
    Identifiers → the `com.mindtomouth.app` App ID, tick *Sign In with Apple*.
@@ -107,8 +108,9 @@ Connect. Work through the second list before pressing Submit.
    explains account deletion (`/support#delete-account`), which Google Play
    also asks for if the app ever ships there.
 8. **App Privacy (nutrition label)**: answer "Yes, we collect data". Add
-   **Audio Data** under User Content: used for App Functionality, not linked to
-   the user's identity, not used for tracking. Add **Email Address** (Contact
+   **Other User Content** (the transcript of each talk) under User Content:
+   used for App Functionality, not linked to the user's identity, not used for
+   tracking. Audio is not collected: speech to text runs on the phone. Add **Email Address** (Contact
    Info) and **User ID** (Identifiers): App Functionality, linked to the user,
    not used for tracking. Add **Name** (Contact Info, linked) only if you keep
    the name Apple shares on first sign-in (the app does, as `full_name` in the

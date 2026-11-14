@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { providerLabel, useAuth } from '../src/auth/AuthProvider';
 import { describeAuthError } from '../src/auth/supabase';
 import { Avatar, Button, Card, Link, Muted, SectionTitle } from '../src/components/ui';
-import { PRIVACY_POLICY_URL, SPEECH_SERVICE_NAME, SUPPORT_URL } from '../src/links';
+import { PRIVACY_POLICY_URL, COACH_SERVICE_NAME, SUPPORT_URL } from '../src/links';
 import { usePlan } from '../src/plan/PlanProvider';
 import { PLUS_NAME } from '../src/plan/limits';
 import { useAllowance } from '../src/plan/useAllowance';
@@ -207,10 +207,10 @@ export default function ProfileScreen() {
               as it was to give, so the withdrawal stays one tap from here. */}
           <View style={styles.row}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.label}>Sending recordings</Text>
+              <Text style={styles.label}>Sending transcripts</Text>
               <Muted style={styles.hint}>
                 {consentDate
-                  ? `Agreed on ${new Date(consentDate).toLocaleDateString()}. Recordings go to ${SPEECH_SERVICE_NAME} for transcription and coaching.`
+                  ? `Agreed on ${new Date(consentDate).toLocaleDateString()}. The text of each talk goes to ${COACH_SERVICE_NAME} for coaching. Recordings stay on this phone.`
                   : 'Not agreed yet. You will be asked before your next talk.'}
               </Muted>
             </View>

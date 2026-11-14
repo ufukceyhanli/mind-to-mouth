@@ -54,7 +54,7 @@ You cannot prepare for a random word. You learn to pick an angle fast and commit
 
 PRIVATE BY DESIGN
 • Recordings, transcripts and scores are stored on your iPhone
-• Audio is sent for scoring only after you agree, and you can withdraw at any time
+• Speech to text runs on your iPhone; only the transcript goes to the coach, and only after you agree
 • No ads, no tracking, no analytics
 • Delete one talk, all talks, or your account from inside the app
 
@@ -110,7 +110,7 @@ recorded the talk, and to nobody else. Expected rating: 4+.
 
 | Data type | Used for | Linked to the user | Tracking |
 | --- | --- | --- | --- |
-| Audio Data (User Content) | App Functionality | No | No |
+| Other User Content (the transcript) | App Functionality | No | No |
 | Email Address (Contact Info) | App Functionality | Yes | No |
 | Name (Contact Info) | App Functionality | Yes | No |
 | User ID (Identifiers) | App Functionality | Yes | No |

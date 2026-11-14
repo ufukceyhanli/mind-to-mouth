@@ -202,7 +202,7 @@ const pages = [
     path: '/privacy',
     title: 'Privacy policy',
     description:
-      'What Mind to Mouth does with your data: recordings stay on your phone, audio is sent to a third-party AI service only after you agree, and accounts hold nothing but an email address.',
+      'What Mind to Mouth does with your data: recordings stay on your phone, speech to text runs on the device, only the transcript goes to a third-party AI coach after you agree, and accounts hold nothing but an email address.',
     body: `<article class="prose">\n${markdownToHtml(readFileSync(join(repoRoot, 'PRIVACY.md'), 'utf8'))}\n</article>`,
   },
   {
