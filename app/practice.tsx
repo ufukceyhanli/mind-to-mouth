@@ -278,7 +278,6 @@ export default function PracticeScreen() {
           transcription,
           topic,
           durationSec: rec.durationSec,
-          minSeconds: currentSettings.minSeconds,
         });
 
         let coach: CoachFeedback | null = null;

@@ -22,7 +22,7 @@ export type Transcription = {
 };
 
 export type ScoreComponent = {
-  key: 'duration' | 'pace' | 'variety' | 'volume' | 'fluency' | 'vocabulary' | 'relevance' | 'flow';
+  key: 'pace' | 'variety' | 'volume' | 'fluency' | 'vocabulary';
   label: string;
   points: number;
   max: number;

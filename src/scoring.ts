@@ -8,9 +8,10 @@ import type {
 
 /**
  * Deterministic, on-device rubric. 100 points total:
- *   duration 15 · pace 15 · rate variation 10 · volume 10 · fluency 15 ·
- *   vocabulary 10 · relevance 15 · flow 10
+ *   pace 25 · rate variation 15 · volume 15 · fluency 25 · vocabulary 20
  * Every component explains itself so the user can see exactly what moved.
+ * Length, staying on topic and pauses are left to the coach, who judges them
+ * from the transcript, and to the measured stats shown alongside.
  */
 
 const FILLERS_MULTI = ['you know', 'kind of', 'sort of', 'i mean', 'or whatever'];
@@ -87,9 +88,8 @@ export function scoreTalk(params: {
   transcription: Transcription;
   topic: string;
   durationSec: number;
-  minSeconds: number;
 }): ScoreBreakdown {
-  const { transcription, topic, durationSec, minSeconds } = params;
+  const { transcription, topic, durationSec } = params;
   const tokens = tokenize(transcription.text);
   const wordCount = tokens.length;
   const minutes = Math.max(durationSec, 1) / 60;
@@ -103,20 +103,7 @@ export function scoreTalk(params: {
 
   const components: ScoreComponent[] = [];
 
-  // Duration (15): full marks for reaching the minimum.
-  const durationRatio = clamp(durationSec / minSeconds, 0, 1);
-  components.push({
-    key: 'duration',
-    label: 'Kept talking',
-    points: Math.round(15 * durationRatio),
-    max: 15,
-    detail:
-      durationRatio >= 1
-        ? `You reached the ${Math.round(minSeconds / 60)}-minute target.`
-        : `Stopped at ${Math.round(durationSec)}s of ${minSeconds}s.`,
-  });
-
-  // Pace (15): sweet spot 120-160 wpm; fades to zero at 70 and 230.
+  // Pace (25): sweet spot 120-160 wpm; fades to zero at 70 and 230.
   let paceScore: number;
   if (wpm < 120) paceScore = ramp(wpm, 70, 120);
   else if (wpm <= 160) paceScore = 1;
@@ -124,8 +111,8 @@ export function scoreTalk(params: {
   components.push({
     key: 'pace',
     label: 'Pace',
-    points: Math.round(15 * paceScore),
-    max: 15,
+    points: Math.round(25 * paceScore),
+    max: 25,
     detail:
       wpm < 120
         ? `${wpm} words/min is on the slow side. Aim for 120–160.`
@@ -134,7 +121,7 @@ export function scoreTalk(params: {
           : `${wpm} words/min sits in the conversational sweet spot.`,
   });
 
-  // Rate variation (10): a voice that speeds up for the story and slows down
+  // Rate variation (15): a voice that speeds up for the story and slows down
   // for the point holds attention; a flat rate sends people to sleep.
   const variety = measurePaceVariation(transcription.segments);
   let varietyScore: number;
@@ -162,12 +149,12 @@ export function scoreTalk(params: {
   components.push({
     key: 'variety',
     label: 'Rate variation',
-    points: Math.round(10 * varietyScore),
-    max: 10,
+    points: Math.round(15 * varietyScore),
+    max: 15,
     detail: varietyDetail,
   });
 
-  // Volume (10): sit around 7 on the 0-10 scale most of the time, so there is
+  // Volume (15): sit around 7 on the 0-10 scale most of the time, so there is
   // room to drop to 4 for intimacy and push to 9 for emphasis, and use it.
   const volume = transcription.volume;
   let volumeScore: number;
@@ -197,71 +184,33 @@ export function scoreTalk(params: {
   components.push({
     key: 'volume',
     label: 'Volume',
-    points: Math.round(10 * volumeScore),
-    max: 10,
+    points: Math.round(15 * volumeScore),
+    max: 15,
     detail: volumeDetail,
   });
 
-  // Fluency (15): ≤1 filler per 100 words is clean; ≥8 per 100 is zero.
+  // Fluency (25): ≤1 filler per 100 words is clean; ≥8 per 100 is zero.
   const fluencyScore = wordCount === 0 ? 0 : 1 - ramp(fillersPer100, 1, 8);
   components.push({
     key: 'fluency',
     label: 'Fluency',
-    points: Math.round(15 * fluencyScore),
-    max: 15,
+    points: Math.round(25 * fluencyScore),
+    max: 25,
     detail:
       fillerCount === 0
         ? 'No filler words detected.'
         : `${fillerCount} filler word${fillerCount === 1 ? '' : 's'} (${fillersPer100.toFixed(1)} per 100 words).`,
   });
 
-  // Vocabulary (10): root type-token ratio, ~0.55 counts as rich for a 2-min talk.
+  // Vocabulary (20): root type-token ratio, ~0.55 counts as rich for a 2-min talk.
   const rootTtr = contentTokens.length > 0 ? uniqueWords / Math.sqrt(contentTokens.length) : 0;
   const vocabScore = ramp(rootTtr, 3.5, 8);
   components.push({
     key: 'vocabulary',
     label: 'Vocabulary range',
-    points: Math.round(10 * vocabScore),
-    max: 10,
+    points: Math.round(20 * vocabScore),
+    max: 20,
     detail: `${uniqueWords} distinct content words out of ${contentTokens.length}.`,
-  });
-
-  // Relevance (15): did the talk actually orbit the prompt?
-  let relevanceScore: number;
-  if (topicMentions === 0) relevanceScore = 0;
-  else if (topicMentions === 1) relevanceScore = 0.5;
-  else if (topicMentions === 2) relevanceScore = 0.8;
-  else relevanceScore = 1;
-  components.push({
-    key: 'relevance',
-    label: 'On topic',
-    points: Math.round(15 * relevanceScore),
-    max: 15,
-    detail:
-      topicMentions === 0
-        ? `"${topic}" never came up. Tie your ideas back to the word.`
-        : `You returned to "${topic}" ${topicMentions} time${topicMentions === 1 ? '' : 's'}.`,
-  });
-
-  // Flow (10): long silences break the spell. <1.5s fine, ≥4s is zero.
-  let flowScore: number;
-  let flowDetail: string;
-  if (pause === null) {
-    flowScore = wordCount > 0 ? 0.7 : 0;
-    flowDetail = 'Not enough timing data to measure pauses.';
-  } else {
-    flowScore = 1 - ramp(pause, 1.5, 4);
-    flowDetail =
-      pause < 1.5
-        ? `Longest pause ${pause}s. Smooth.`
-        : `Longest pause ${pause}s. A bridging phrase beats silence.`;
-  }
-  components.push({
-    key: 'flow',
-    label: 'Flow',
-    points: Math.round(10 * flowScore),
-    max: 10,
-    detail: flowDetail,
   });
 
   const total = components.reduce((sum, c) => sum + c.points, 0);

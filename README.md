@@ -83,14 +83,15 @@ The on-device rubric is deterministic and explains every point:
 
 | Component | Max | What it measures |
 | --- | --- | --- |
-| Kept talking | 15 | Reaching the minimum length |
-| Pace | 15 | Words per minute, sweet spot 120–160 |
-| Rate variation | 10 | How much the speaking rate (words/min while talking, pauses excluded) changes across the talk |
-| Volume | 10 | Speaking level on a 0–10 scale (7 is the target most of the time) and how much it varies |
-| Fluency | 15 | Filler words per 100 words (um, uh, like, you know, …) |
-| Vocabulary range | 10 | Distinct content words relative to length |
-| On topic | 15 | How often the prompt word (or a form of it) came up |
-| Flow | 10 | Longest silence, measured from the audio |
+| Pace | 25 | Words per minute, sweet spot 120–160 |
+| Rate variation | 15 | How much the speaking rate (words/min while talking, pauses excluded) changes across the talk |
+| Volume | 15 | Speaking level on a 0–10 scale (7 is the target most of the time) and how much it varies |
+| Fluency | 25 | Filler words per 100 words (um, uh, like, you know, …) |
+| Vocabulary range | 20 | Distinct content words relative to length |
+
+Length, staying on topic and pauses are not scored by the rubric. The longest
+pause and the number of times the prompt word came up are still measured and
+passed to the coach, who judges relevance from the whole transcript.
 
 Then the coach reads the transcript and returns three content scores
 (coherence, structure, relevance, each 0–10), two or three strengths, two or

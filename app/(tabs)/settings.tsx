@@ -153,10 +153,9 @@ export default function SettingsScreen() {
           <SectionTitle>How scoring works</SectionTitle>
           <Card>
             <Muted>
-              The delivery rubric runs on your phone: keeping going (15), pace (15), rate
-              variation (10), volume (10), fluency (15), vocabulary range (10), staying on topic
-              (15) and flow (10). The coach adds three content scores out of 10 and the final
-              number is 60% rubric, 40% coach.
+              The delivery rubric runs on your phone: pace (25), rate variation (15), volume
+              (15), fluency (25) and vocabulary range (20). The coach adds three content scores
+              out of 10 and the final number is 60% rubric, 40% coach.
             </Muted>
           </Card>
         </View>
