@@ -13,9 +13,10 @@
       "bundleIdentifier": "com.mindtomouth.app",
       "usesAppleSignIn": true,
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "Mind to Mouth records your talk so it can be turned into text on this phone and scored. Audio never leaves your phone."
+        "NSMicrophoneUsageDescription": "Mind to Mouth records your talk so it can be turned into text on this phone and scored. Audio never leaves your phone.",
+        "NSPhotoLibraryUsageDescription": "Mind to Mouth does not use your photos. A file-handling library inside the app can ask for photo access, and Apple requires this notice for it."
       },
-      "buildNumber": "2",
+      "buildNumber": "3",
       "config": {
         "usesNonExemptEncryption": false
       },
