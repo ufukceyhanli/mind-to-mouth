@@ -15,7 +15,7 @@
       "infoPlist": {
         "NSMicrophoneUsageDescription": "Mind to Mouth records your talk so it can be turned into text on this phone and scored. Audio never leaves your phone."
       },
-      "buildNumber": "1",
+      "buildNumber": "2",
       "config": {
         "usesNonExemptEncryption": false
       },

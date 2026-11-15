@@ -114,7 +114,7 @@ app/                 Expo Router screens
   practice.tsx       word → countdown → recording → processing
   result/[id].tsx    score breakdown, coach notes, transcript
   (tabs)/history.tsx all talks (swipe left or long-press to delete)
-  (tabs)/settings.tsx API key, model ids, timing options
+  (tabs)/settings.tsx practice options, where the talk goes, how scoring works
   profile.tsx        account (sign out, delete), privacy choices, about; from the avatar on Today
   auth/welcome.tsx   first screen when signed out: what the app does, Get Started, I have an account
   auth/index.tsx     create account, step 1: continue with email, Apple or Google

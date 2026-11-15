@@ -100,7 +100,7 @@ export default function ProfileScreen() {
 
   const withdrawConsent = () => {
     Alert.alert(
-      'Stop sending recordings?',
+      'Stop sending transcripts?',
       'You will be asked again before your next talk. Talks cannot be scored without it.',
       [
         { text: 'Keep sharing', style: 'cancel' },
