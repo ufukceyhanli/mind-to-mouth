@@ -22,7 +22,7 @@ const SITE = {
   // a "coming soon" pill instead of a download button and say that contact
   // details will follow. Keep SUPPORT_EMAIL in step with src/links.ts.
   appStoreUrl: '',
-  supportEmail: '',
+  supportEmail: 'contact@ufukceyhanli.com',
 };
 
 // Page fragments that depend on the two optional values above.

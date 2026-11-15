@@ -45,7 +45,7 @@ WHAT YOU SEE AFTER EACH TALK
 • Pace in words per minute, and how much it varied
 • Filler words: um, uh, like, you know
 • Vocabulary range and how well you stayed on the word
-• Your longest pause and your speaking volume
+• Your speaking volume, and whether it held steady
 • Two or three strengths, what to work on, and one drill for tomorrow
 • The transcript and the recording, to listen back
 
@@ -93,7 +93,8 @@ public speaking,speech,impromptu,fluency,filler words,presentation,interview,coa
 6.9-inch iPhone, 1320 × 2868, in `store-assets/appstore/`. Upload them in
 file-name order: `1-today`, `2-word`, `3-talking`, `4-result`, `5-coaching`,
 `6-talks`. They were taken in the simulator with sample talks scored by the
-app's own rubric. `store-assets/paywall-2.png` is the screenshot for the
+app's own rubric; `4-result` and `5-coaching` were retaken on 2026-11-15
+after the rubric lost its length, on-topic and flow rows. `store-assets/paywall-2.png` is the screenshot for the
 subscription's Review Information, not for the listing.
 
 ## Age rating questionnaire
@@ -128,11 +129,13 @@ purchase data reaches the developer.
 ```
 Mind to Mouth is a speaking drill: one random word, two minutes of talking, then a score and coaching notes.
 
-Sign in with the demo account above (email and password on the "I have an account" screen). Tap "Today's talk", agree to the data-sharing notice, allow the microphone and speak for at least two minutes; the Finish button unlocks at 0:00. Scoring needs a network connection and takes about a minute.
+Sign in with the demo account above (email and password on the "I have an account" screen). Tap "Start talking", agree to the data-sharing notice, allow the microphone and speech recognition, and speak for at least two minutes; the Finish button unlocks at 0:00. Speech to text runs on the device; the coach's notes need a network connection and arrive within about 30 seconds.
 
-Recordings are sent to a third-party AI service for transcription and coaching. The consent screen explains this before the first recording, nothing is sent until the user agrees, and Profile > About > Withdraw revokes it. Feedback is labelled as AI-generated.
+Speech to text runs on the iPhone with Apple's speech recognition. Only the transcript and a few measured numbers (word count, pace, filler count) are sent to a third-party AI service that writes the coaching notes; the recording never leaves the device. The consent screen explains this before the first recording, nothing is sent until the user agrees, and Profile > About > Withdraw revokes it. Feedback is labelled as AI-generated, with a Report a problem link under it.
 
-An account is required to use the app (Sign in with Apple, Google or email). Account deletion is under Profile (avatar on the Today tab) > Account > Delete account and removes the account and everything stored with it.
+Why an account is required: it is the only identity the app has for honouring deletion and support requests, and for carrying the free plan and Plus across reinstalls in a later version. Talks, recordings and transcripts are never uploaded; the account stores an email address only, and it can be deleted in the app.
+
+An account is required to use the app (Sign in with Apple or email). Account deletion is under Profile (avatar on the Today tab) > Account > Delete account and removes the account and everything stored with it.
 
 The free plan allows three scored talks a week. Mind to Mouth Plus (auto-renewable, monthly) removes the limit. The paywall is under Profile > Plan > See Plus and also opens from Today once the free talks are used. Restore purchases is on the same screen.
 ```

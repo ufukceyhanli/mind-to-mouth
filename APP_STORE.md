@@ -14,7 +14,7 @@ Connect. Work through the second list before pressing Submit.
 | 5.1.1(v) Account deletion | An app that lets people create an account must let them delete it in the app | Profile → Account → Delete account, confirmed, calls the `delete_user` function in `supabase/schema.sql`, which removes the user and all server data |
 | 4.8 Sign in with Apple | Offered whenever a third-party login is offered; equivalent, privacy-respecting | Native "Continue with Apple" button (`expo-apple-authentication`) next to Google on the create-account and sign-in screens, email relay accepted |
 | 5.1.1(ii) Account required | Account creation may only be required when the app's core features need it | The app requires an account before anything else (welcome → create account or sign in). Be ready to explain in Review Notes why the core features need it, or Apple may push back |
-| 1.2 / 4.7 AI content | Report mechanism and published contact | "Report a problem" link under the coach card and "Contact" in Profile → About open the support page (or the support mailbox once `SUPPORT_EMAIL` in `src/links.ts` and `website/build.mjs` is set); the coach prompt forbids remarks about the person. The repository is private, so nothing user-facing may link to it |
+| 1.2 / 4.7 AI content | Report mechanism and published contact | "Report a problem" link under the coach card and "Contact" in Profile → About open the support mailbox (`SUPPORT_EMAIL` in `src/links.ts` and `website/build.mjs`); the support page carries the same address; the coach prompt forbids remarks about the person. The repository is private, so nothing user-facing may link to it |
 | 5.1.1(ii) Purpose strings | Explain the microphone and speech recognition use | `NSMicrophoneUsageDescription` and `NSSpeechRecognitionUsageDescription` in `app.json` say the talk is recorded and transcribed on the phone and that audio never leaves it |
 | Privacy manifest | Declare collected data and required-reason APIs | `ios.privacyManifests` in `app.json`: Other User Content, i.e. the transcript (not linked), Email Address and User ID (linked to the account, app functionality, not tracking) |
 | Export compliance | `ITSAppUsesNonExemptEncryption` | `ios.config.usesNonExemptEncryption: false` (HTTPS only) |
@@ -129,12 +129,12 @@ Connect. Work through the second list before pressing Submit.
     in the Supabase dashboard (Authentication → Users → Add user, with
     "Auto confirm" on). Apple asks for one whenever an app has a login.
 
-    > Sign in with the demo account below. Tap "Today's talk", agree to the data-sharing notice,
-    > allow the microphone, and speak for about a minute. The recording is sent
-    > to a third-party AI service for transcription and coaching; the consent
-    > screen explains this and Profile → About allows withdrawal. Scoring
-    > needs a network connection. Feedback is AI-generated and labelled as such.
-    > An account is required; sign in with Apple, Google or email on the first
+    > Sign in with the demo account below. Tap "Start talking", agree to the data-sharing notice,
+    > allow the microphone and speech recognition, and speak for at least two minutes. Speech to
+    > text runs on the device; only the transcript goes to a third-party AI service
+    > for coaching. The consent screen explains this and Profile → About allows
+    > withdrawal. Coaching needs a network connection. Feedback is AI-generated and labelled as such.
+    > An account is required; sign in with Apple or email on the first
     > screen. Demo account: EMAIL / PASSWORD. Delete account is under Profile (avatar on the Today tab) → Account.
     > The free plan allows three scored talks a week. Mind to Mouth Plus
     > (auto-renewable, monthly) removes the limit; the paywall is under
@@ -170,9 +170,12 @@ The subscription belongs to the Apple Account, not the app account: it works
 for whoever signs in to the app on that phone, and follows the Apple Account to
 a new phone through Restore purchases.
 
-## Known risk: the bundled access key
+## Known limit: the coach relay is open
 
-The service key is compiled into the app from `.env`. Anyone who unpacks the
-IPA can read it and spend against the account. Apple does not reject apps for
-this, but before a public release either put a small proxy with rate limits in
-front of the service or set a hard spending cap on the key.
+The app holds no model key any more: coaching goes through the Cloudflare
+Worker in `worker/`, which is rate-limited per IP (6 requests a minute) and
+runs inside the Workers AI free allocation. Anyone who finds the Worker URL in
+the binary can call it until the daily allocation is spent, after which the
+app shows the rubric score with a note. Setting the `APP_TOKEN` secret on the
+Worker and `EXPO_PUBLIC_COACH_TOKEN` in the build narrows that to people who
+unpack the app.
