@@ -7,7 +7,7 @@
  * SITE_URL here and in `website/build.mjs`.
  */
 /** Support mailbox. Empty until one exists; keep in step with website/build.mjs. */
-export const SUPPORT_EMAIL = '';
+export const SUPPORT_EMAIL = 'contact@ufukceyhanli.com';
 
 export const SITE_URL = 'https://mind-to-mouth.web.app';
 export const PRIVACY_POLICY_URL = `${SITE_URL}/privacy`;
