@@ -4,14 +4,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { router } from 'expo-router';
 
-import { coachConfigured } from '../../src/coach';
 import { Button, Card, Chip, Link, Muted, PageHeader, SectionTitle } from '../../src/components/ui';
 import { usePlan } from '../../src/plan/PlanProvider';
 import { FREE_MAX_SECONDS } from '../../src/plan/limits';
-import { COACH_SERVICE_NAME } from '../../src/links';
 import { loadSettings, saveSettings } from '../../src/storage';
 import { colors, spacing, type } from '../../src/theme';
-import { supportsOnDevice } from '../../src/transcribe';
 import { DEFAULT_SETTINGS, type Settings } from '../../src/types';
 
 const PREP_OPTIONS = [5, 10, 20, 30];
@@ -52,7 +49,6 @@ export default function SettingsScreen() {
     }
   };
 
-  const onDevice = supportsOnDevice();
 
   return (
     <View style={styles.screen}>
@@ -126,30 +122,6 @@ export default function SettingsScreen() {
         />
 
         <View>
-          <SectionTitle>Where your talk goes</SectionTitle>
-          <Card style={{ gap: spacing.lg }}>
-            <InfoRow
-              label="Speech to text"
-              value={onDevice ? 'On this phone' : 'Apple speech service'}
-              hint={
-                onDevice
-                  ? 'iOS turns the recording into text without sending audio anywhere.'
-                  : 'This device cannot recognise speech offline, so iOS sends the audio to Apple for recognition.'
-              }
-            />
-            <InfoRow
-              label="Coach"
-              value={coachConfigured ? 'Mind to Mouth coach' : 'Not configured'}
-              hint={
-                coachConfigured
-                  ? `Only the text of your talk and the measured stats go to ${COACH_SERVICE_NAME}, never the recording.`
-                  : 'This build scores with the on-device rubric alone.'
-              }
-            />
-          </Card>
-        </View>
-
-        <View>
           <SectionTitle>How scoring works</SectionTitle>
           <Card>
             <Muted>
@@ -160,18 +132,6 @@ export default function SettingsScreen() {
           </Card>
         </View>
       </ScrollView>
-    </View>
-  );
-}
-
-function InfoRow({ label, value, hint }: { label: string; value: string; hint: string }) {
-  return (
-    <View>
-      <View style={styles.labelRow}>
-        <Text style={[styles.label, { marginBottom: 0 }]}>{label}</Text>
-        <Text style={styles.value}>{value}</Text>
-      </View>
-      <Muted style={styles.hint}>{hint}</Muted>
     </View>
   );
 }
@@ -213,9 +173,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   content: { paddingHorizontal: spacing.md, gap: spacing.lg },
   label: { ...type.label, color: colors.text, marginBottom: spacing.sm },
-  labelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  value: { ...type.label, color: colors.accent, flexShrink: 1, textAlign: 'right' },
   hint: { ...type.caption, marginTop: 8 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
 });
