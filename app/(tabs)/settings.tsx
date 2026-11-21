@@ -4,10 +4,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { router } from 'expo-router';
 
-import { coachHost } from '../../src/coach';
+import { coachConfigured } from '../../src/coach';
 import { Button, Card, Chip, Link, Muted, PageHeader, SectionTitle } from '../../src/components/ui';
 import { usePlan } from '../../src/plan/PlanProvider';
 import { FREE_MAX_SECONDS } from '../../src/plan/limits';
+import { COACH_SERVICE_NAME } from '../../src/links';
 import { loadSettings, saveSettings } from '../../src/storage';
 import { colors, spacing, type } from '../../src/theme';
 import { supportsOnDevice } from '../../src/transcribe';
@@ -51,7 +52,6 @@ export default function SettingsScreen() {
     }
   };
 
-  const host = coachHost();
   const onDevice = supportsOnDevice();
 
   return (
@@ -139,10 +139,10 @@ export default function SettingsScreen() {
             />
             <InfoRow
               label="Coach"
-              value={host ?? 'Not configured'}
+              value={coachConfigured ? 'Mind to Mouth coach' : 'Not configured'}
               hint={
-                host
-                  ? 'Only the text of your talk and the measured stats are sent, never the recording.'
+                coachConfigured
+                  ? `Only the text of your talk and the measured stats go to ${COACH_SERVICE_NAME}, never the recording.`
                   : 'This build scores with the on-device rubric alone.'
               }
             />

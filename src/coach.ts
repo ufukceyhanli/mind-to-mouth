@@ -11,16 +11,6 @@ const COACH_TOKEN = (process.env.EXPO_PUBLIC_COACH_TOKEN ?? '').trim();
 /** False in builds without a coach URL; the rubric is shown on its own. */
 export const coachConfigured = COACH_URL.length > 0;
 
-/** Host name shown in Settings so the user knows where transcripts go. */
-export function coachHost(): string | null {
-  if (!coachConfigured) return null;
-  try {
-    return new URL(COACH_URL).host;
-  } catch {
-    return COACH_URL;
-  }
-}
-
 export class CoachApiError extends Error {
   status: number;
   constructor(status: number, message: string) {
