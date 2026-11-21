@@ -124,20 +124,47 @@ purchase data reaches the developer.
 - **Sign-in required**: yes. Enter a demo account created in the sign-in
   provider's dashboard with "Auto confirm" on. Do not reuse a personal account.
 - **Contact**: your name, phone number and email.
-- **Notes**:
+- **Attachment**: a screen recording made on a physical iPhone, starting on the
+  Home Screen. Apple asked for one on the developer's other app (Guideline 2.1,
+  Information Needed, 20 Nov 2026), so attach it up front. Show: launch, the
+  welcome cards, signing in with the demo account, the consent notice and the two
+  permission prompts, one full talk, the result with the AI label, the Talks tab,
+  Settings, Profile down to Delete account (do not confirm), and the Plus screen
+  with the price and Restore purchases. Once attached, add this as the first
+  lines of the notes: "A screen recording is attached (App Review Information,
+  Attachment). It was recorded on a physical iPhone and starts on the Home Screen."
+- **Notes** (answers the six numbered items of Apple's Information Needed
+  request in order; 4,000 characters max):
 
 ```
-Mind to Mouth is a speaking drill: one random word, two minutes of talking, then a score and coaching notes.
+1. ACCOUNTS, CONTENT AND PURCHASES
+An account is required (Sign in with Apple, or email and password). Use the demo account above: on the welcome screen tap "I have an account" and enter the email and password.
+Account deletion is in the app: Profile (avatar at the top right of the Today tab) > Account > Delete account. It removes the account and everything stored with it.
+Why an account is required: it is the only identity the app has for honouring deletion and support requests, and for carrying the plan across reinstalls in a later version. It stores an email address only.
+There is no user-generated content shared between users: talks, recordings and transcripts are private and stay on the device. There is one paid feature set, Mind to Mouth Plus (item 3).
 
-Sign in with the demo account above (email and password on the "I have an account" screen). Tap "Start talking", agree to the data-sharing notice, allow the microphone and speech recognition, and speak for at least two minutes; the Finish button unlocks at 0:00. Speech to text runs on the device; the coach's notes need a network connection and arrive within about 30 seconds.
+2. PURPOSE AND AUDIENCE
+Mind to Mouth is a speaking drill for people who want to speak clearly without a script: professionals preparing for meetings and interviews, students, and people practising spoken English. Impromptu speaking only improves with regular practice and feedback, and most people have neither a partner nor a coach. The app shows one random word, the user talks about it for two minutes, and it returns a score for delivery (pace, fluency, volume, vocabulary range) with short coaching notes for the next talk.
 
-Speech to text runs on the iPhone with Apple's speech recognition. Only the transcript and a few measured numbers (word count, pace, filler count) are sent to a third-party AI service that writes the coaching notes; the recording never leaves the device. The consent screen explains this before the first recording, nothing is sent until the user agrees, and Profile > About > Withdraw revokes it. Feedback is labelled as AI-generated, with a Report a problem link under it.
+3. SET-UP AND MAIN FEATURES
+- Sign in with the demo account (item 1).
+- Start a talk: on the Today tab tap the "Start now" card. The first time, tap "Agree and continue" on the data-sharing notice and allow the microphone and speech recognition. A random word appears with a short thinking time; tap "I'm ready" and speak. "Finish" unlocks after the minimum talk time, two minutes by default. To test faster, set Settings > "Minimum talk" to its shortest option and tap Save.
+- Result: the score, its breakdown and the coach's notes appear within about 30 seconds; the notes need a network connection. The feedback is labelled as AI-generated, with a "Report a problem" link under it.
+- Talks tab: past talks with their scores. Swipe a row to delete it.
+- Subscription: one auto-renewable monthly subscription, "Mind to Mouth Plus" (com.mindtomouth.app.plus.monthly). The free plan allows three scored talks a week, up to three minutes each. Plus removes the weekly limit, adds a pronunciation check and allows talks up to ten minutes. Open Profile > Plan > "See Plus"; the same screen opens from Today once the free talks are used. It shows the price and period, "Restore purchases", and links to the terms of use and the privacy policy.
 
-Why an account is required: it is the only identity the app has for honouring deletion and support requests, and for carrying the free plan and Plus across reinstalls in a later version. Talks, recordings and transcripts are never uploaded; the account stores an email address only, and it can be deleted in the app.
+4. EXTERNAL SERVICES
+- Speech to text: Apple's speech recognition, on the device. The recording never leaves the iPhone.
+- Coaching notes: only after the user agrees on the consent screen, the transcript and a few measured numbers (word count, pace, filler count) are sent over HTTPS to the developer's own endpoint on Cloudflare Workers, which runs an open language model (Meta Llama 3.3 70B) on Cloudflare Workers AI and returns the notes. The request carries no account identifier. Consent can be withdrawn under Profile > About > Withdraw.
+- Accounts: Supabase Auth holds the email address, and the name if Sign in with Apple shares it.
+- Apple services: Sign in with Apple, StoreKit (the subscription) and the built-in iOS voices (pronunciation playback).
+There is no analytics, no advertising and no tracking.
 
-An account is required to use the app (Sign in with Apple or email). Account deletion is under Profile (avatar on the Today tab) > Account > Delete account and removes the account and everything stored with it.
+5. REGIONAL DIFFERENCES
+None. Features and content are the same in every region, in English. Only the subscription price varies by storefront.
 
-The free plan allows three scored talks a week. Mind to Mouth Plus (auto-renewable, monthly) removes the limit. The paywall is under Profile > Plan > See Plus and also opens from Today once the free talks are used. Restore purchases is on the same screen.
+6. REGULATED INDUSTRY / THIRD-PARTY MATERIAL
+The app is not in a regulated industry. The prompt words are an ordinary word list written by the developer, and the app includes no third-party content. The coach's feedback is AI-generated practice guidance, labelled as such, and is not professional advice.
 ```
 
 Apple may ask why an account is required when talks stay on the phone
@@ -150,3 +177,5 @@ sign-in optional in a follow-up build if they insist.
 2. Under **In-App Purchases and Subscriptions**, Plus Monthly is added.
 3. The support page shows a working contact address.
 4. The demo account signs in on a fresh install.
+5. The screen recording is attached under App Review Information.
+6. The coach endpoint answers: `curl <coach URL>/health` returns `ok: true`.
